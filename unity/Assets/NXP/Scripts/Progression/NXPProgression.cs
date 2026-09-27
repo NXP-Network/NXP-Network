@@ -1,0 +1,2 @@
+using UnityEngine;
+public class NXPProgression:MonoBehaviour{public static NXPProgression I;public int level=1,xp,credits;void Awake(){I=this;DontDestroyOnLoad(gameObject);level=PlayerPrefs.GetInt("level",1);xp=PlayerPrefs.GetInt("xp");credits=PlayerPrefs.GetInt("credits");}int Need()=>100+(level-1)*35;public void AddXP(int n){xp+=n;while(xp>=Need()){xp-=Need();level++;}Save();}public void AddCredits(int n){credits+=n;Save();}void Save(){PlayerPrefs.SetInt("level",level);PlayerPrefs.SetInt("xp",xp);PlayerPrefs.SetInt("credits",credits);PlayerPrefs.Save();}}
