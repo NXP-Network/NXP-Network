@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NXP Cyber Quest</title>
+
+<style>
+*{box-sizing:border-box}
+body{
+ margin:0;
+ font-family:Arial,sans-serif;
+ background:radial-gradient(circle at top,#24104b,#050711 60%);
+ color:white;
+ min-height:100vh;
+}
+.container{max-width:760px;margin:auto;padding:18px}
+.logo{text-align:center;margin-top:10px}
+.logo img{width:90px;border-radius:50%}
+h1{text-align:center;color:#65eaff;margin-bottom:5px}
+.subtitle{text-align:center;color:#aaa;margin-bottom:20px}
+
+.card{
+ background:rgba(15,20,40,.94);
+ border:1px solid #6748ff;
+ border-radius:20px;
+ padding:17px;
+ margin:15px 0;
+ box-shadow:0 0 25px rgba(100,60,255,.15);
+}
+
+.stats{
+ display:grid;
+ grid-template-columns:repeat(3,1fr);
+ gap:8px;
+}
+.stat{
+ background:#090d1c;
+ padding:12px 5px;
+ border-radius:13px;
+ text-align:center;
+}
+.stat b{font-size:20px;color:#62eaff}
+
+.bar{
+ height:12px;
+ background:#292e47;
+ border-radius:10px;
+ overflow:hidden;
+}
+.bar span{
+ display:block;
+ height:100%;
+ background:linear-gradient(90deg,#00e7ff,#9a4cff);
+}
+
+.mission{
+ background:#090e20;
+ border-radius:14px;
+ padding:13px;
+ margin:9px 0;
+ display:flex;
+ justify-content:space-between;
+ align-items:center;
+}
+
+button{
+ border:0;
+ border-radius:12px;
+ padding:12px 15px;
+ font-weight:bold;
+ background:linear-gradient(90deg,#00dfff,#954cff);
+ color:#07101b;
+ cursor:pointer;
+}
+button:disabled{opacity:.4}
+
+.arena{text-align:center}
+.enemy{font-size:70px;margin:12px}
+.small{font-size:12px;color:#aab4d2}
+
+.shop{
+ display:grid;
+ grid-template-columns:1fr 1fr;
+ gap:10px;
+}
+.shop button{
+ background:#242a45;
+ color:white;
+}
+
+.prestige{
+ color:#ffd65c;
+ text-shadow:0 0 10px #ff9d00;
+ font-weight:bold;
+}
+
+.notice{
+ color:#8f9ab8;
+ font-size:12px;
+ line-height:1.5;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<div class="logo">
+<img src="../logo.png">
+</div>
+
+<h1>⚡ NXP CYBER QUEST</h1>
+<div class="subtitle">Play • Connect • Progress</div>
+
+<div class="card">
+
+<div class="stats">
+
+<div class="stat">
+LEVEL<br>
+<b id="level">1</b>
+</div>
+
+<div class="stat">
+⚡ ENERGY<br>
+<b id="energy">100</b>
+</div>
+
+<div class="stat">
+💎 POINTS<br>
+<b id="points">0</b>
+</div>
+
+</div>
+
+<p>XP: <span id="xptext"></span></p>
+
+<div class="bar">
+<span id="xpbar"></span>
+</div>
+
+<p id="rank" class="small">
+R
