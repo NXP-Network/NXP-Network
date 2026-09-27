@@ -1,0 +1,2 @@
+using UnityEngine;
+public class NXPNeonFlicker:MonoBehaviour{public Light source;public Renderer emissive;public float intensity=7;Material m;void Awake(){if(emissive)m=emissive.material;}void Update(){float n=.8f+Mathf.PerlinNoise(Time.time*5,transform.position.x)*.35f;if(source)source.intensity=intensity*n;if(m&&m.HasProperty("_EmissionColor"))m.SetColor("_EmissionColor",m.GetColor("_EmissionColor").normalized*intensity*n);}}
