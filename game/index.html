@@ -8,12 +8,25 @@
 <div>Seviye ilerlemesi</div><div class="bar"><div id="xpBar" class="fill"></div></div><div>Enerji</div><div class="bar"><div id="energyBar" class="fill energy"></div></div></div>
 <div class="card"><div class="row"><h2>🗺️ Bölgeler</h2><span class="muted" id="mapInfo"></span></div><div class="maps" id="maps"></div></div>
 <div class="card"><h2>⚡ Görevler</h2><div class="missions" id="missions"></div><div id="toast"></div></div>
+<div class="card"><h2>⚔️ Bölge Operasyonu</h2>
+<div id="battleIntro" class="muted">Kazandığın bölgede operasyona gir. Düşman dalgalarını temizle ve bölge boss'unu yen.</div>
+<div id="battle" style="margin-top:10px">
+ <div class="row"><b id="battleZone">Neon District</b><span class="badge" id="waveText">Hazır</span></div>
+ <div style="margin-top:8px">Oyuncu Canı</div><div class="bar"><div id="hpBar" class="fill energy" style="width:100%"></div></div>
+ <div style="margin-top:8px">Düşman / Boss Canı</div><div class="bar"><div id="enemyBar" class="fill" style="width:100%"></div></div>
+ <div class="missions" style="margin-top:10px">
+  <button id="attackBtn" onclick="attack()">⚡ Saldır</button>
+  <button id="healBtn" onclick="heal()">🛡️ Savun / Onar</button>
+ </div>
+ <div id="battleMsg" class="small" style="margin-top:10px">Operasyonu başlatmaya hazırsın.</div>
+ <button id="startBattle" onclick="startBattle()">🚀 Bölge Operasyonunu Başlat</button>
+</div></div>
 <div class="card"><h2>📅 Günlük Görevler</h2><div id="daily"></div></div>
 <div class="card"><h2>🏆 Kariyer</h2><div id="rank"></div><p class="muted">Yeni bölgeler ve görevler seviye yükseldikçe açılır. İlerleme bu cihazda otomatik kaydedilir.</p></div>
 <div class="card"><h2>🎒 Envanter</h2><div id="inventory"></div></div>
 <div class="card"><button onclick="resetGame()">Test için ilerlemeyi sıfırla</button></div>
 </div><script>
-const KEY="nxpCyberV2";
+const KEY="nxpCyberV2"; let battle={active:false,wave:0,hp:100,enemy:0,maxEnemy:0,boss:false};
 const maps=[{n:"Neon District",l:1,e:"🌃",need:0},{n:"Data Wasteland",l:3,e:"🏜️",need:6},{n:"Quantum Port",l:6,e:"⚓",need:15},{n:"Orbital Core",l:10,e:"🛰️",need:30}];
 const missions=[{n:"Hızlı Tarama",xp:18,c:8,e:1,l:1},{n:"Firewall Baskını",xp:35,c:16,e:2,l:2},{n:"Veri Kasası",xp:62,c:30,e:3,l:4},{n:"Boss: Black Node",xp:110,c:55,e:5,l:7}];
 const base={level:1,xp:0,energy:10,credits:0,last:Date.now(),plays:0,dailyXp:0,territory:0,inventory:["Başlangıç Tarayıcısı"]};
@@ -23,12 +36,17 @@ function regen(){let now=Date.now(),g=Math.floor((now-s.last)/60000);if(g>0){s.e
 function save(){localStorage.setItem(KEY,JSON.stringify(s))}
 function rank(){return s.level>=10?"Cyber Legend":s.level>=6?"Elite":s.level>=3?"Operative":"Rookie"}
 function play(i){regen();let m=missions[i];if(s.level<m.l)return toast("Bu görev Seviye "+m.l+" gerektiriyor.",0);if(s.energy<m.e)return toast("Yeterli enerji yok.",0);s.energy-=m.e;s.xp+=m.xp;s.dailyXp+=m.xp;s.credits+=m.c;s.plays++;s.territory++;let ups=0;while(s.xp>=need()){s.xp-=need();s.level++;s.energy=Math.min(10,s.energy+2);ups++}if(s.plays===5&&!s.inventory.includes("Neon Rozeti"))s.inventory.push("Neon Rozeti");save();render();toast("Görev tamamlandı! +"+m.xp+" XP • +"+m.c+" kredi"+(ups?" • SEVİYE ATLADIN!":""),1)}
+function currentMap(){let a=maps.filter(x=>s.level>=x.l&&s.territory>=x.need);return a[Math.max(0,a.length-1)]||maps[0]}
+function startBattle(){if(battle.active)return;let z=currentMap();battle={active:true,wave:1,hp:100,enemy:55,maxEnemy:55,boss:false};document.getElementById("battleZone").textContent=z.e+" "+z.n;battleRender();document.getElementById("battleMsg").textContent="Dalga 1 başladı. Düşmanları temizle!"}
+function attack(){if(!battle.active)return;let dmg=18+Math.floor(Math.random()*13);battle.enemy=Math.max(0,battle.enemy-dmg);if(battle.enemy>0){battle.hp=Math.max(0,battle.hp-(7+Math.floor(Math.random()*10)))}if(battle.hp<=0){battle.active=false;document.getElementById("battleMsg").textContent="Operasyon başarısız. Tekrar deneyebilirsin.";battleRender();return}if(battle.enemy<=0){if(battle.boss){battle.active=false;s.xp+=45;s.credits+=30;s.territory+=2;s.plays+=1;if(!s.inventory.includes("Bölge Fatihi Rozeti"))s.inventory.push("Bölge Fatihi Rozeti");while(s.xp>=need()){s.xp-=need();s.level++}save();render();document.getElementById("battleMsg").textContent="BOSS YENİLDİ! Bölge operasyonu tamamlandı: +45 XP, +30 kredi, +2 zafer.";battleRender();return}battle.wave++;if(battle.wave>=3){battle.boss=true;battle.enemy=120;battle.maxEnemy=120;document.getElementById("battleMsg").textContent="⚠️ BÖLGE BOSS'U GELDİ!"}else{battle.enemy=70;battle.maxEnemy=70;document.getElementById("battleMsg").textContent="Dalga "+battle.wave+" başladı!"}}battleRender()}
+function heal(){if(!battle.active)return;if(s.energy<1){document.getElementById("battleMsg").textContent="Savunma için 1 enerji gerekli.";return}s.energy--;battle.hp=Math.min(100,battle.hp+25);save();render();battleRender();document.getElementById("battleMsg").textContent="Kalkan onarıldı: +25 can."}
+function battleRender(){document.getElementById("hpBar").style.width=battle.hp+"%";let ep=battle.maxEnemy?battle.enemy/battle.maxEnemy*100:100;document.getElementById("enemyBar").style.width=ep+"%";document.getElementById("waveText").textContent=battle.active?(battle.boss?"BOSS":"Dalga "+battle.wave):"Hazır";document.getElementById("attackBtn").disabled=!battle.active;document.getElementById("healBtn").disabled=!battle.active;document.getElementById("startBattle").disabled=battle.active}
 function toast(t,ok){let x=document.getElementById("toast");x.textContent=t;x.className=ok?"ok":"warn";setTimeout(()=>{x.textContent=""},2600)}
 function render(){regen();document.getElementById("level").textContent=s.level;document.getElementById("xpText").textContent=s.xp+" / "+need();document.getElementById("energyText").textContent=s.energy+" / 10";document.getElementById("credits").textContent=s.credits;document.getElementById("xpBar").style.width=(s.xp/need()*100)+"%";document.getElementById("energyBar").style.width=(s.energy*10)+"%";
 let unlocked=maps.filter(x=>s.level>=x.l&&s.territory>=x.need).length;document.getElementById("mapInfo").textContent=unlocked+"/"+maps.length+" kazanıldı";document.getElementById("maps").innerHTML=maps.map((m,i)=>{let open=s.level>=m.l&&s.territory>=m.need;let req=[];if(s.level<m.l)req.push("Seviye "+m.l);if(s.territory<m.need)req.push(m.need+" görev zaferi");return '<div class="map '+(open?'active':'locked')+'"><b>'+m.e+" "+m.n+'</b><div class="muted">'+(open?"Bölge kazanıldı ✓":req.join(" • ")+" gerekli")+"</div></div>"}).join("");
 document.getElementById("missions").innerHTML=missions.map((m,i)=>'<button '+(s.level<m.l||s.energy<m.e?"disabled":"")+' onclick="play('+i+')">'+m.n+'<br><small>+'+m.xp+" XP • +"+m.c+" kredi • ⚡"+m.e+(s.level<m.l?" • LV "+m.l:"")+"</small></button>").join("");
 let q1=Math.min(s.plays,3),q2=Math.min(s.dailyXp,100);document.getElementById("daily").innerHTML='<div class="quest">🎯 3 görev tamamla: <b>'+q1+'/3</b> '+(q1>=3?'<span class="ok">✓</span>':"")+'</div><div class="quest">⚡ 100 XP kazan: <b>'+q2+'/100</b> '+(q2>=100?'<span class="ok">✓</span>':"")+"</div>";
-document.getElementById("rank").innerHTML='<span class="badge">'+rank()+'</span> <span class="badge">LV '+s.level+"</span>";document.getElementById("inventory").innerHTML=s.inventory.map(x=>'<span class="badge">🎁 '+x+"</span>").join("")}
+document.getElementById("battleZone").textContent=currentMap().e+" "+currentMap().n;battleRender();document.getElementById("rank").innerHTML='<span class="badge">'+rank()+'</span> <span class="badge">LV '+s.level+"</span>";document.getElementById("inventory").innerHTML=s.inventory.map(x=>'<span class="badge">🎁 '+x+"</span>").join("")}
 function resetGame(){if(confirm("Test ilerlemesi sıfırlansın mı?")){s={...base,last:Date.now(),inventory:["Başlangıç Tarayıcısı"]};save();render()}}
 render();setInterval(render,15000);
 </script></body></html>
