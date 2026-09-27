@@ -1,299 +1,34 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>NXP Cyber Mission</title>
-
+<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>NXP Cyber Mission</title>
 <style>
-*{box-sizing:border-box}
-body{
- margin:0;
- font-family:Arial,sans-serif;
- background:linear-gradient(180deg,#050711,#0b1020,#050711);
- color:#fff;
- min-height:100vh
-}
-.app{max-width:760px;margin:auto;padding:18px}
-.top{
- display:flex;justify-content:space-between;align-items:center;
- gap:12px;margin-bottom:15px
-}
-.brand{font-weight:900;font-size:21px;color:#65eaff}
-.lang{
- background:#111a30;color:white;border:1px solid #34415f;
- border-radius:12px;padding:10px;font-size:14px
-}
-.hero,.card{
- background:rgba(15,21,42,.95);
- border:1px solid #273557;
- border-radius:20px;
- padding:18px;
- margin-bottom:14px;
- box-shadow:0 0 25px rgba(90,70,255,.12)
-}
-.hero{text-align:center}
-.hero h1{margin:5px 0;color:#7defff;font-size:30px}
-.muted{color:#aeb9d4}
-.stats{
- display:grid;
- grid-template-columns:repeat(3,1fr);
- gap:8px;margin-top:15px
-}
-.stat{
- background:#090e1d;border:1px solid #25304d;
- border-radius:13px;padding:11px;text-align:center
-}
-.stat b{display:block;color:#71edff;font-size:18px}
-.bar{
- height:12px;background:#070b15;border-radius:20px;
- overflow:hidden;margin:8px 0
-}
-.fill{
- height:100%;width:0;
- background:linear-gradient(90deg,#18e0ff,#845cff);
- transition:.3s
-}
-.energy{background:linear-gradient(90deg,#5fff9b,#1ad5ff)}
-button{
- width:100%;border:0;border-radius:14px;padding:14px;
- margin-top:9px;font-weight:800;font-size:16px;
- background:linear-gradient(90deg,#35e6ff,#795cff);
- color:#050711;cursor:pointer
-}
-button:disabled{opacity:.4}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.small{font-size:13px;color:#aeb9d4}
-.badge{
- display:inline-block;padding:6px 10px;border-radius:20px;
- background:#17213b;color:#7defff;margin:3px
-}
-.locked{opacity:.55}
-#msg{
- text-align:center;min-height:24px;
- color:#72f2bb;font-weight:bold;margin-top:8px
-}
-footer{
- text-align:center;color:#69758f;font-size:12px;
- padding:20px
-}
-@media(max-width:480px){
- .stats{grid-template-columns:1fr 1fr}
- .grid{grid-template-columns:1fr}
- .hero h1{font-size:25px}
-}
-</style>
-</head>
-
-<body>
-<div class="app">
-
-<div class="top">
- <div class="brand">NXP NETWORK</div>
-
- <select id="language" class="lang" onchange="changeLanguage(this.value)">
-  <option value="tr">🇹🇷 Türkçe</option>
-  <option value="en">🇬🇧 English</option>
-  <option value="de">🇩🇪 Deutsch</option>
-  <option value="es">🇪🇸 Español</option>
-  <option value="ru">🇷🇺 Русский</option>
-  <option value="zh">🇨🇳 简体中文</option>
-  <option value="ja">🇯🇵 日本語</option>
-  <option value="ko">🇰🇷 한국어</option>
-  <option value="hi">🇮🇳 हिन्दी</option>
-  <option value="id">🇮🇩 Indonesia</option>
-  <option value="vi">🇻🇳 Tiếng Việt</option>
-  <option value="th">🇹🇭 ไทย</option>
- </select>
-</div>
-
-<div class="hero">
- <div>🎮 🌐 ⚡</div>
- <h1 data-t="title">NXP Cyber Mission</h1>
- <div class="muted" data-t="subtitle">Play • Progress • Connect</div>
-
- <div class="stats">
-  <div class="stat"><span data-t="level">Level</span><b id="level">1</b></div>
-  <div class="stat"><span>XP</span><b id="xpText">0 / 100</b></div>
-  <div class="stat"><span data-t="energy">Energy</span><b id="energyText">10 / 10</b></div>
- </div>
-</div>
-
-<div class="card">
- <b data-t="progress">Level Progress</b>
- <div class="bar"><div id="xpBar" class="fill"></div></div>
-
- <b data-t="energy">Energy</b>
- <div class="bar"><div id="energyBar" class="fill energy"></div></div>
-
- <div class="small" data-t="energyInfo">
- Energy regenerates automatically over time.
- </div>
-</div>
-
-<div class="card">
- <h2>⚡ <span data-t="missions">Missions</span></h2>
-
- <div class="grid">
-  <button onclick="mission(15,1)">🎯 <span data-t="mission1">Quick Mission</span> +15 XP</button>
-  <button onclick="mission(30,2)">🛰️ <span data-t="mission2">Cyber Mission</span> +30 XP</button>
-  <button onclick="mission(55,3)">⚔️ <span data-t="mission3">Battle Mission</span> +55 XP</button>
-  <button onclick="mission(90,5)">👑 <span data-t="mission4">Elite Mission</span> +90 XP</button>
- </div>
-
- <div id="msg"></div>
-</div>
-
-<div class="card">
- <h2>🏆 <span data-t="rank">Rank System</span></h2>
- <span class="badge">LVL 1–49 • Rookie</span>
- <span class="badge">LVL 50–99 • Fighter</span>
- <span class="badge">LVL 100–199 • Elite</span>
- <span class="badge">LVL 200+ • Cyber Legend ✨</span>
-
- <p class="small" data-t="rankInfo">
- Higher levels unlock new visual status and future game features.
- </p>
-</div>
-
-<div class="card">
- <h2>🛒 <span data-t="shop">NXP Shop</span></h2>
-
- <div class="grid">
-  <button onclick="coming()">🎨 <span data-t="skins">Special Skins</span></button>
-  <button onclick="coming()">⚙️ <span data-t="gear">Equipment</span></button>
-  <button onclick="coming()">⚡ <span data-t="boost">Time Boost</span></button>
-  <button onclick="coming()">💎 <span data-t="premium">Premium Items</span></button>
- </div>
-
- <p class="small" data-t="shopInfo">
- Future purchases can provide cosmetic items and limited progression conveniences.
- </p>
-</div>
-
-<div class="card">
- <h2>🛡️ <span data-t="clans">Clans & Clan Wars</span></h2>
- <p class="muted" data-t="clanInfo">
- Build a clan, cooperate with players and compete in future clan events.
- </p>
- <button onclick="coming()" data-t="clanButton">Clan System — Coming Soon</button>
-</div>
-
-<div class="card">
- <h2>🤖 <span data-t="security">Fair Play</span></h2>
- <p class="small" data-t="securityInfo">
- Anti-bot and server-side validation will be added before competitive rewards are enabled.
- </p>
-</div>
-
-<footer>
- NXP Network • Gaming × Social × Web3<br>
- Play. Connect. Earn.
-</footer>
-
-</div>
-
-<script>
-const T={
-en:{
- title:"NXP Cyber Mission",subtitle:"Play • Progress • Connect",
- level:"Level",energy:"Energy",progress:"Level Progress",
- energyInfo:"Energy regenerates automatically over time.",
- missions:"Missions",mission1:"Quick Mission",mission2:"Cyber Mission",
- mission3:"Battle Mission",mission4:"Elite Mission",
- rank:"Rank System",
- rankInfo:"Higher levels unlock new visual status and future game features.",
- shop:"NXP Shop",skins:"Special Skins",gear:"Equipment",
- boost:"Time Boost",premium:"Premium Items",
- shopInfo:"Future purchases can provide cosmetic items and limited progression conveniences.",
- clans:"Clans & Clan Wars",
- clanInfo:"Build a clan, cooperate with players and compete in future clan events.",
- clanButton:"Clan System — Coming Soon",
- security:"Fair Play",
- securityInfo:"Anti-bot and server-side validation will be added before competitive rewards are enabled.",
- success:"Mission completed! +{xp} XP",
- noEnergy:"Not enough energy.",
- coming:"Coming soon."
-},
-tr:{
- title:"NXP Siber Görev",subtitle:"Oyna • İlerle • Bağlan",
- level:"Seviye",energy:"Enerji",progress:"Seviye İlerlemesi",
- energyInfo:"Enerji zamanla otomatik olarak yenilenir.",
- missions:"Görevler",mission1:"Hızlı Görev",mission2:"Siber Görev",
- mission3:"Savaş Görevi",mission4:"Elit Görev",
- rank:"Rütbe Sistemi",
- rankInfo:"Yüksek seviyeler yeni görünümler ve gelecekteki oyun özelliklerini açar.",
- shop:"NXP Mağazası",skins:"Özel Skinler",gear:"Ekipman",
- boost:"Zaman Hızlandırıcı",premium:"Premium Eşyalar",
- shopInfo:"Gelecekteki satın alımlar kozmetik ürünler ve sınırlı ilerleme kolaylıkları sağlayabilir.",
- clans:"Klanlar ve Klan Savaşları",
- clanInfo:"Klan kur, oyuncularla birlikte hareket et ve gelecekteki klan etkinliklerinde mücadele et.",
- clanButton:"Klan Sistemi — Yakında",
- security:"Adil Oyun",
- securityInfo:"Rekabetçi ödüller etkinleştirilmeden önce bot koruması ve sunucu doğrulaması eklenecektir.",
- success:"Görev tamamlandı! +{xp} XP",
- noEnergy:"Yeterli enerji yok.",
- coming:"Yakında."
-}
-};
-
-const fallback={
-de:["NXP Cyber Mission","Spielen • Fortschritt • Verbinden"],
-es:["NXP Misión Cibernética","Juega • Progresa • Conecta"],
-ru:["NXP Кибер Миссия","Играй • Развивайся • Общайся"],
-zh:["NXP 网络任务","游戏 • 成长 • 连接"],
-ja:["NXP サイバーミッション","プレイ • 成長 • つながる"],
-ko:["NXP 사이버 미션","플레이 • 성장 • 연결"],
-hi:["NXP साइबर मिशन","खेलें • आगे बढ़ें • जुड़ें"],
-id:["NXP Misi Siber","Main • Berkembang • Terhubung"],
-vi:["NXP Nhiệm Vụ Mạng","Chơi • Phát triển • Kết nối"],
-th:["NXP ภารกิจไซเบอร์","เล่น • พัฒนา • เชื่อมต่อ"]
-};
-
-for(const k in fallback){
- T[k]=Object.assign({},T.en,{
-  title:fallback[k][0],
-  subtitle:fallback[k][1]
- });
-}
-
-let state={
- level:Number(localStorage.getItem("nxpLevel"))||1,
- xp:Number(localStorage.getItem("nxpXp"))||0,
- energy:Number(localStorage.getItem("nxpEnergy"))||10,
- last:Number(localStorage.getItem("nxpLast"))||Date.now()
-};
-
-function needXP(){
- return Math.floor(100*Math.pow(1.055,state.level-1));
-}
-
-function regen(){
- const now=Date.now();
- const gained=Math.floor((now-state.last)/60000);
-
- if(gained>0){
-  state.energy=Math.min(10,state.energy+gained);
-  state.last+=gained*60000;
-  save();
- }
-}
-
-function save(){
- localStorage.setItem("nxpLevel",state.level);
- localStorage.setItem("nxpXp",state.xp);
- localStorage.setItem("nxpEnergy",state.energy);
- localStorage.setItem("nxpLast",state.last);
-}
-
-function render(){
- regen();
-
- let need=needXP();
-
- document.getElementById("level").textContent=state.level;
- document.getElementById("xpText").textContent=state.xp+" / "+need;
- document.getElementById("energyText").textContent=state.energy+" / 10";
-
- document.getElementBy
- 
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,Arial;background:#050713;color:#eef7ff;min-height:100vh}.app{max-width:860px;margin:auto;padding:16px}.top{display:flex;justify-content:space-between;align-items:center;gap:10px}.brand{font-weight:900;letter-spacing:1px;color:#6cecff}.pill,.card{background:#0d1428;border:1px solid #25365d;border-radius:18px}.pill{padding:8px 12px}.card{padding:16px;margin-top:12px;box-shadow:0 10px 35px #0006}h1{margin:8px 0;color:#7ceeff}.muted{color:#9cabc9}.stats,.missions,.maps{display:grid;gap:9px}.stats{grid-template-columns:repeat(4,1fr)}.missions,.maps{grid-template-columns:repeat(2,1fr)}.stat,.map{background:#080e1e;border:1px solid #243253;border-radius:14px;padding:12px}.stat b{display:block;color:#7ceeff;font-size:18px}.bar{height:10px;background:#050916;border-radius:20px;overflow:hidden;margin:7px 0}.fill{height:100%;background:linear-gradient(90deg,#27e7ff,#875fff);width:0}.energy{background:linear-gradient(90deg,#61ff9e,#23d9ff)}button{border:0;border-radius:13px;padding:13px;font-weight:800;background:linear-gradient(90deg,#37e9ff,#8a62ff);color:#06101d;cursor:pointer;width:100%}button:disabled{opacity:.4}.map.active{border-color:#61eaff;box-shadow:0 0 18px #2ddcff33}.map.locked{opacity:.45}.map button{margin-top:8px}.row{display:flex;gap:8px;align-items:center;justify-content:space-between}.badge{display:inline-block;padding:5px 9px;border-radius:16px;background:#182342;color:#80ecff;margin:2px}.quest{padding:10px 0;border-bottom:1px solid #1d2946}.quest:last-child{border:0}.ok{color:#62f3a8}.warn{color:#ffd36b}#toast{min-height:24px;text-align:center;font-weight:800;color:#6ff1b3;padding-top:8px}@media(max-width:600px){.stats{grid-template-columns:1fr 1fr}.missions,.maps{grid-template-columns:1fr}}
+</style></head><body><div class="app">
+<div class="top"><div class="brand">NXP NETWORK</div><div class="pill">🎮 CYBER MISSION</div></div>
+<div class="card"><h1>NXP Cyber Mission</h1><div class="muted">Görevleri tamamla • Bölgeleri aç • Rütbeni yükselt</div>
+<div class="stats"><div class="stat">Seviye<b id="level"></b></div><div class="stat">XP<b id="xpText"></b></div><div class="stat">Enerji<b id="energyText"></b></div><div class="stat">Kredi<b id="credits"></b></div></div>
+<div>Seviye ilerlemesi</div><div class="bar"><div id="xpBar" class="fill"></div></div><div>Enerji</div><div class="bar"><div id="energyBar" class="fill energy"></div></div></div>
+<div class="card"><div class="row"><h2>🗺️ Bölgeler</h2><span class="muted" id="mapInfo"></span></div><div class="maps" id="maps"></div></div>
+<div class="card"><h2>⚡ Görevler</h2><div class="missions" id="missions"></div><div id="toast"></div></div>
+<div class="card"><h2>📅 Günlük Görevler</h2><div id="daily"></div></div>
+<div class="card"><h2>🏆 Kariyer</h2><div id="rank"></div><p class="muted">Yeni bölgeler ve görevler seviye yükseldikçe açılır. İlerleme bu cihazda otomatik kaydedilir.</p></div>
+<div class="card"><h2>🎒 Envanter</h2><div id="inventory"></div></div>
+<div class="card"><button onclick="resetGame()">Test için ilerlemeyi sıfırla</button></div>
+</div><script>
+const KEY="nxpCyberV2";
+const maps=[{n:"Neon District",lvl:1,e:"🌃"},{n:"Data Wasteland",lvl:3,e:"🏜️"},{n:"Quantum Port",lvl:6,e:"⚓"},{n:"Orbital Core",lvl:10,e:"🛰️"}];
+const missions=[{n:"Hızlı Tarama",xp:18,c:8,e:1,l:1},{n:"Firewall Baskını",xp:35,c:16,e:2,l:2},{n:"Veri Kasası",xp:62,c:30,e:3,l:4},{n:"Boss: Black Node",xp:110,c:55,e:5,l:7}];
+const base={level:1,xp:0,energy:10,credits:0,last:Date.now(),plays:0,dailyXp:0,inventory:["Başlangıç Tarayıcısı"]};
+let s;try{s=Object.assign({},base,JSON.parse(localStorage.getItem(KEY)||"{}"))}catch(e){s={...base}}
+function need(){return 100+(s.level-1)*35}
+function regen(){let now=Date.now(),g=Math.floor((now-s.last)/60000);if(g>0){s.energy=Math.min(10,s.energy+g);s.last+=g*60000;save()}}
+function save(){localStorage.setItem(KEY,JSON.stringify(s))}
+function rank(){return s.level>=10?"Cyber Legend":s.level>=6?"Elite":s.level>=3?"Operative":"Rookie"}
+function play(i){regen();let m=missions[i];if(s.level<m.l)return toast("Bu görev Seviye "+m.l+" gerektiriyor.",0);if(s.energy<m.e)return toast("Yeterli enerji yok.",0);s.energy-=m.e;s.xp+=m.xp;s.dailyXp+=m.xp;s.credits+=m.c;s.plays++;let ups=0;while(s.xp>=need()){s.xp-=need();s.level++;s.energy=Math.min(10,s.energy+2);ups++}if(s.plays===5&&!s.inventory.includes("Neon Rozeti"))s.inventory.push("Neon Rozeti");save();render();toast("Görev tamamlandı! +"+m.xp+" XP • +"+m.c+" kredi"+(ups?" • SEVİYE ATLADIN!":""),1)}
+function toast(t,ok){let x=document.getElementById("toast");x.textContent=t;x.className=ok?"ok":"warn";setTimeout(()=>{x.textContent=""},2600)}
+function render(){regen();document.getElementById("level").textContent=s.level;document.getElementById("xpText").textContent=s.xp+" / "+need();document.getElementById("energyText").textContent=s.energy+" / 10";document.getElementById("credits").textContent=s.credits;document.getElementById("xpBar").style.width=(s.xp/need()*100)+"%";document.getElementById("energyBar").style.width=(s.energy*10)+"%";
+let unlocked=maps.filter(x=>s.level>=x.l).length;document.getElementById("mapInfo").textContent=unlocked+"/"+maps.length+" açık";document.getElementById("maps").innerHTML=maps.map((m,i)=>'<div class="map '+(s.level>=m.l?'active':'locked')+'"><b>'+m.e+" "+m.n+'</b><div class="muted">'+(s.level>=m.l?"Açık":"Seviye "+m.l+" gerekli")+"</div></div>").join("");
+document.getElementById("missions").innerHTML=missions.map((m,i)=>'<button '+(s.level<m.l||s.energy<m.e?"disabled":"")+' onclick="play('+i+')">'+m.n+'<br><small>+'+m.xp+" XP • +"+m.c+" kredi • ⚡"+m.e+(s.level<m.l?" • LV "+m.l:"")+"</small></button>").join("");
+let q1=Math.min(s.plays,3),q2=Math.min(s.dailyXp,100);document.getElementById("daily").innerHTML='<div class="quest">🎯 3 görev tamamla: <b>'+q1+'/3</b> '+(q1>=3?'<span class="ok">✓</span>':"")+'</div><div class="quest">⚡ 100 XP kazan: <b>'+q2+'/100</b> '+(q2>=100?'<span class="ok">✓</span>':"")+"</div>";
+document.getElementById("rank").innerHTML='<span class="badge">'+rank()+'</span> <span class="badge">LV '+s.level+"</span>";document.getElementById("inventory").innerHTML=s.inventory.map(x=>'<span class="badge">🎁 '+x+"</span>").join("")}
+function resetGame(){if(confirm("Test ilerlemesi sıfırlansın mı?")){s={...base,last:Date.now(),inventory:["Başlangıç Tarayıcısı"]};save();render()}}
+render();setInterval(render,15000);
+</script></body></html>
