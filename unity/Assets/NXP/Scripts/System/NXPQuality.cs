@@ -1,0 +1,2 @@
+using UnityEngine;
+public class NXPQuality:MonoBehaviour{public enum Tier{Low,Medium,High,Ultra}public void Set(Tier t){QualitySettings.SetQualityLevel(Mathf.Clamp((int)t,0,QualitySettings.names.Length-1),true);Application.targetFrameRate=t==Tier.Ultra?60:45;}}
