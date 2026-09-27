@@ -1,0 +1,2 @@
+using UnityEngine;
+public class NXPRainFX:MonoBehaviour{public ParticleSystem rain;public Transform follow;void LateUpdate(){if(follow)transform.position=new Vector3(follow.position.x,follow.position.y+12,follow.position.z);if(rain&&!rain.isPlaying)rain.Play();}}
