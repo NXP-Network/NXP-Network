@@ -1,0 +1,2 @@
+using UnityEngine;
+public class NXPWetRoadPulse:MonoBehaviour{public Renderer target;public float min=.65f,max=1.15f,speed=.35f;Material m;void Awake(){if(target)m=target.material;}void Update(){if(!m)return;float v=Mathf.Lerp(min,max,(Mathf.Sin(Time.time*speed)+1)*.5f);if(m.HasProperty("_Smoothness"))m.SetFloat("_Smoothness",v);}}
