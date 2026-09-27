@@ -1,0 +1,2 @@
+using UnityEngine;
+public class NXPImpactVFX:MonoBehaviour{public ParticleSystem sparks,smoke;public Light flash;void OnEnable(){sparks?.Play();smoke?.Play();if(flash)StartCoroutine(Pulse());}System.Collections.IEnumerator Pulse(){flash.enabled=true;yield return new WaitForSeconds(.06f);flash.enabled=false;}}
