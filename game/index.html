@@ -14,7 +14,7 @@
 <div class="card"><button onclick="resetGame()">Test için ilerlemeyi sıfırla</button></div>
 </div><script>
 const KEY="nxpCyberV2";
-const maps=[{n:"Neon District",lvl:1,e:"🌃"},{n:"Data Wasteland",lvl:3,e:"🏜️"},{n:"Quantum Port",lvl:6,e:"⚓"},{n:"Orbital Core",lvl:10,e:"🛰️"}];
+const maps=[{n:"Neon District",l:1,e:"🌃"},{n:"Data Wasteland",l:3,e:"🏜️"},{n:"Quantum Port",l:6,e:"⚓"},{n:"Orbital Core",l:10,e:"🛰️"}];
 const missions=[{n:"Hızlı Tarama",xp:18,c:8,e:1,l:1},{n:"Firewall Baskını",xp:35,c:16,e:2,l:2},{n:"Veri Kasası",xp:62,c:30,e:3,l:4},{n:"Boss: Black Node",xp:110,c:55,e:5,l:7}];
 const base={level:1,xp:0,energy:10,credits:0,last:Date.now(),plays:0,dailyXp:0,inventory:["Başlangıç Tarayıcısı"]};
 let s;try{s=Object.assign({},base,JSON.parse(localStorage.getItem(KEY)||"{}"))}catch(e){s={...base}}
