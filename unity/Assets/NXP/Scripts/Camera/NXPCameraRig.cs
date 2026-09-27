@@ -1,0 +1,2 @@
+using UnityEngine;
+public class NXPCameraRig:MonoBehaviour{public Transform target;public Vector3 offset=new(0,13,-10);public float smooth=8;void LateUpdate(){if(!target)return;transform.position=Vector3.Lerp(transform.position,target.position+offset,1-Mathf.Exp(-smooth*Time.deltaTime));transform.LookAt(target.position+Vector3.up*1.1f);}}
