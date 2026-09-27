@@ -1,0 +1,2 @@
+using UnityEngine;using UnityEngine.Events;
+public class NXPHealth:MonoBehaviour{public float maxHP=160;public UnityEvent onDeath;public float HP{get;private set;}void Awake()=>HP=maxHP;public void Damage(float n){HP=Mathf.Max(0,HP-n);if(HP<=0)onDeath?.Invoke();}public void Heal(float n)=>HP=Mathf.Min(maxHP,HP+n);}
