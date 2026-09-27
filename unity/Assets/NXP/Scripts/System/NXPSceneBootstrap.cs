@@ -1,0 +1,2 @@
+using UnityEngine;
+public class NXPSceneBootstrap:MonoBehaviour{public NXPNeonDistrictBuilder world;public NXPCameraRig cameraRig;public NXPGraphicsBootstrap graphics;void Awake(){Application.targetFrameRate=60;Screen.sleepTimeout=SleepTimeout.NeverSleep;}void Start(){if(world&&!world.gameObject.activeSelf)world.gameObject.SetActive(true);}}
