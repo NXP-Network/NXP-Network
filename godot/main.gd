@@ -357,7 +357,9 @@ func _spawn_enemy(boss: bool) -> void:
 	if not boss:
 		spawned += 1
 	add_child(root)
-	var scale_factor := 2.1 if boss else 1.0
+	# Every spider keeps the existing single-file spawn timing and route.
+	var kind := "queen" if boss else ["normal", "scout", "normal", "armored"][((spawned - 1) + 4) % 4]
+	var scale_factor := 2.1 if boss else 0.77 if kind == "scout" else 1.27 if kind == "armored" else 1.0
 	root.scale = Vector3.ONE * scale_factor
 	var shell := Color(0.28, 0.15, 0.22) if boss else Color(0.16, 0.2, 0.25)
 	if stage == 1:
@@ -366,11 +368,18 @@ func _spawn_enemy(boss: bool) -> void:
 		shell = Color(0.13, 0.28, 0.3)
 	elif stage == 3:
 		shell = Color(0.3, 0.22, 0.39)
+	if kind == "scout":
+		shell = Color(0.24, 0.42, 0.38)
+	elif kind == "armored":
+		shell = Color(0.35, 0.33, 0.42)
 	var legs := Color(0.25, 0.15, 0.19) if boss else Color(0.13, 0.17, 0.21)
 	oval(root, Vector3(0.65, 0.37, 0.72), Vector3(0, 0.78, 0.42), shell)
 	oval(root, Vector3(0.42, 0.29, 0.43), Vector3(0, 0.76, -0.49), shell.lightened(0.15))
 	for stripe in range(3):
 		oval(root, Vector3(0.44 - stripe * 0.08, 0.04, 0.06), Vector3(0, 1.11 + stripe * 0.025, 0.05 + stripe * 0.27), shell.lightened(0.35))
+	if kind == "armored":
+		for plate in range(3):
+			block(root, Vector3(0.62, 0.09, 0.24), Vector3(0, 1.15, -0.1 + plate * 0.34), shell.lightened(0.22))
 	for side_value in [-1, 1]:
 		var side := float(side_value)
 		for leg_index in range(4):
@@ -384,10 +393,11 @@ func _spawn_enemy(boss: bool) -> void:
 		var side := float(side_value)
 		oval(root, Vector3(0.09, 0.09, 0.06), Vector3(side * 0.19, 0.87, -0.87), Color(0.85, 0.19, 0.2))
 		limb(root, Vector3(side * 0.21, 0.69, -0.77), Vector3(side * 0.25, 0.39, -0.98), 0.055, legs)
-	var enemy_hp := 220.0 + stage * 70.0 if boss else 65.0 + stage * 17.0
+	var enemy_hp := 220.0 + stage * 70.0 if boss else 110.0 + stage * 23.0 if kind == "armored" else 42.0 + stage * 12.0 if kind == "scout" else 65.0 + stage * 17.0
+	var enemy_speed := 0.9 + stage * 0.07 if boss else 1.95 + stage * 0.12 if kind == "scout" else 1.08 + stage * 0.08 if kind == "armored" else 1.45 + stage * 0.12
 	var bar_width := 1.4 if boss else 1.8
 	var bar := health_bar(root, 1.62, bar_width, Color(0.96, 0.31, 0.33))
-	enemies.append({"node": root, "hp": enemy_hp, "shown_hp": enemy_hp, "max_hp": enemy_hp, "bar": bar, "bar_width": bar_width, "speed": 0.9 + stage * 0.07 if boss else 1.45 + stage * 0.12, "boss": boss})
+	enemies.append({"node": root, "hp": enemy_hp, "shown_hp": enemy_hp, "max_hp": enemy_hp, "bar": bar, "bar_width": bar_width, "speed": enemy_speed, "boss": boss, "kind": kind})
 
 func _screen_axis_to_world(axis: Vector2) -> Vector3:
 	# Camera axes make touch and keyboard directions match what is seen on screen.
