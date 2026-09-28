@@ -81,12 +81,13 @@ func _build_world() -> void:
 	block(self, Vector3(13, 0.03, 46), Vector3(0, 0, 0), Color(0.08, 0.12, 0.19))
 	for z in range(-20, 22, 4):
 		block(self, Vector3(0.12, 0.025, 1.8), Vector3(0, 0.04, z), AMBER, true)
-	for side in [-1, 1]:
+	for side_value in [-1, 1]:
+		var side := float(side_value)
 		block(self, Vector3(0.12, 0.08, 45), Vector3(side * 6.4, 0.02, 0), CYAN, true)
 		for row in range(6):
 			var z := -19.0 + row * 7.5
 			var height := rng.randf_range(4.0, 10.0)
-			var x := side * rng.randf_range(10.5, 15.0)
+			var x: float = side * rng.randf_range(10.5, 15.0)
 			block(self, Vector3(5.2, height, 5.7), Vector3(x, height * 0.5, z), Color(0.045, 0.065, 0.12))
 			for level in range(1, int(height / 1.15)):
 				var tint: Color = PINK if (row + level) % 3 == 0 else CYAN
