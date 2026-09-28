@@ -29,9 +29,10 @@ var player_display_hp := 100.0
 var stone_texture: Texture2D
 var road_texture: Texture2D
 var kill_goal := 8
+var spawned := 0
 var choosing_map := false
 var fire_timer := 0.0
-var spawn_timer := 0.0
+var spawn_timer := 0.8
 var game_over := false
 var boss_spawned := false
 var joy_origin := Vector2.ZERO
@@ -55,8 +56,6 @@ func _ready() -> void:
 	_build_ui()
 	for i in range(3):
 		_spawn_core(Vector3(-4.2 + i * 4.2, 0, -3.0 + (i % 2) * 4.0))
-	for i in range(5):
-		_spawn_enemy(false)
 	_refresh_ui()
 
 func _load_progress() -> void:
@@ -167,13 +166,13 @@ func _build_world() -> void:
 	settings.background_mode = Environment.BG_COLOR
 	settings.background_color = [Color(0.035, 0.05, 0.08), Color(0.16, 0.11, 0.08), Color(0.04, 0.11, 0.17), Color(0.055, 0.035, 0.12)][stage]
 	settings.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	settings.ambient_light_color = Color(0.4, 0.48, 0.58)
+	settings.ambient_light_color = [Color(0.36, 0.43, 0.62), Color(0.66, 0.43, 0.26), Color(0.36, 0.55, 0.68), Color(0.47, 0.39, 0.68)][stage]
 	settings.ambient_light_energy = 1.0
 	env.environment = settings
 	add_child(env)
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-55, -40, 0)
-	sun.light_color = Color(0.64, 0.75, 0.86)
+	sun.light_color = [Color(0.56, 0.72, 0.94), Color(1.0, 0.69, 0.4), Color(0.6, 0.84, 0.95), Color(0.72, 0.59, 1.0)][stage]
 	sun.light_energy = 0.85
 	sun.shadow_enabled = true
 	add_child(sun)
@@ -194,7 +193,12 @@ func _build_world() -> void:
 	for i in range(18):
 		var x := rng.randf_range(-5.6, 5.6)
 		var z := rng.randf_range(-20, 20)
-		block(self, Vector3(rng.randf_range(0.5, 1.8), 0.013, rng.randf_range(0.2, 0.8)), Vector3(x, 0.048, z), road.darkened(0.16))
+		var patch := block(self, Vector3(rng.randf_range(0.5, 1.8), 0.013, rng.randf_range(0.2, 0.8)), Vector3(x, 0.048, z), road.darkened(0.16))
+		if stage == 0:
+			var wet := material(Color(0.11, 0.17, 0.28))
+			wet.metallic = 0.55
+			wet.roughness = 0.17
+			patch.material_override = wet
 	for side_value in ([-1, 1] if stage == 0 else []):
 		var side := float(side_value)
 		block(self, Vector3(0.1, 0.055, 45), Vector3(side * 6.4, 0.02, 0), Color(0.11, 0.42, 0.5))
@@ -217,6 +221,16 @@ func _build_world() -> void:
 		block(self, Vector3(0.9, 0.9, 0.9), Vector3(side * rng.randf_range(6.9, 8.5), 0.45, z), Color(0.24, 0.19, 0.16))
 		block(self, Vector3(0.96, 0.07, 0.96), Vector3(side * 7.5, 0.94, z), Color(0.55, 0.39, 0.21))
 	_build_map_props()
+	if stage == 0:
+		for i in range(4):
+			var sign := Label3D.new()
+			sign.text = "NXP" if i % 2 == 0 else "NEON"
+			sign.font_size = 40
+			sign.pixel_size = 0.016
+			sign.modulate = Color(0.28, 0.79, 1.0) if i % 2 == 0 else Color(0.92, 0.3, 0.78)
+			sign.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+			sign.position = Vector3(-7.4 if i % 2 == 0 else 7.4, 3.5, -14.0 + i * 8.0)
+			add_child(sign)
 	camera = Camera3D.new()
 	camera.projection = Camera3D.PROJECTION_PERSPECTIVE
 	camera.fov = 58.0
@@ -337,7 +351,11 @@ func _spawn_core(pos: Vector3) -> void:
 
 func _spawn_enemy(boss: bool) -> void:
 	var root := Node3D.new()
-	root.position = Vector3(rng.randf_range(-3.5, 3.5), 0, rng.randf_range(-10.5, -8.0))
+	var lanes := [-2.5, 0.0, 2.5, -1.2, 1.2]
+	var lane_x: float = lanes[spawned % lanes.size()]
+	root.position = Vector3(lane_x, 0, -9.5)
+	if not boss:
+		spawned += 1
 	add_child(root)
 	var scale_factor := 2.1 if boss else 1.0
 	root.scale = Vector3.ONE * scale_factor
@@ -392,10 +410,10 @@ func _process(delta: float) -> void:
 	fire_timer = maxf(0.0, fire_timer - delta)
 	if fire_held or Input.is_action_pressed("fire"):
 		_shoot()
-	spawn_timer -= delta
-	if spawn_timer <= 0.0 and enemies.size() < 6 and not boss_spawned and kills < kill_goal:
+	spawn_timer = maxf(0.0, spawn_timer - delta)
+	if spawn_timer <= 0.0 and enemies.size() < 4 and not boss_spawned and spawned < kill_goal:
 		_spawn_enemy(false)
-		spawn_timer = maxf(2.6, 3.6 - stage * 0.22)
+		spawn_timer = maxf(3.3, 4.2 - stage * 0.2)
 	for i in range(enemies.size() - 1, -1, -1):
 		var enemy: Dictionary = enemies[i]
 		var node: Node3D = enemy["node"]
