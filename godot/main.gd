@@ -28,7 +28,7 @@ var player_bar: MeshInstance3D
 var player_display_hp := 100.0
 var stone_texture: Texture2D
 var road_texture: Texture2D
-var kill_goal := 8
+var kill_goal := 12
 var spawned := 0
 var choosing_map := false
 var fire_timer := 0.0
@@ -36,7 +36,7 @@ var spawn_timer := 0.8
 var game_over := false
 var boss_spawned := false
 var choosing_upgrade := false
-var last_upgrade_kills := 0
+var boss_prep_done := false
 var weapon_bonus := 0.0
 var base_resistance := 1.0
 var joy_origin := Vector2.ZERO
@@ -53,7 +53,7 @@ var overlay: Control
 func _ready() -> void:
 	_load_progress()
 	rng.seed = 42028 + stage * 101
-	kill_goal = 8 + stage * 2
+	kill_goal = 12
 	_build_world()
 	_build_base()
 	_build_player()
@@ -426,8 +426,9 @@ func _process(delta: float) -> void:
 	if fire_held or Input.is_action_pressed("fire"):
 		_shoot()
 	spawn_timer = maxf(0.0, spawn_timer - delta)
-	if spawn_timer <= 0.0 and enemies.size() < 4 and not boss_spawned and spawned < kill_goal:
-		_spawn_enemy(false)
+	if spawn_timer <= 0.0 and enemies.size() <= 2 and not boss_spawned and spawned < kill_goal:
+		for _pair_member in range(mini(2, kill_goal - spawned)):
+			_spawn_enemy(false)
 		spawn_timer = maxf(3.3, 4.2 - stage * 0.2)
 	for i in range(enemies.size() - 1, -1, -1):
 		var enemy: Dictionary = enemies[i]
@@ -483,14 +484,14 @@ func _process(delta: float) -> void:
 		if hit or float(bolt["life"]) <= 0.0:
 			mesh.queue_free()
 			bolts.remove_at(i)
-	if kills >= kill_goal and cores.is_empty() and not boss_spawned:
-		boss_spawned = true
-		_spawn_enemy(true)
 	if hp <= 0 or base_hp <= 0:
 		_end_game(false)
-	if not game_over and kills > 0 and kills % 3 == 0 and kills < kill_goal and kills != last_upgrade_kills:
-		last_upgrade_kills = kills
-		_show_upgrade_menu()
+	if not game_over and kills >= kill_goal and cores.is_empty() and not boss_spawned:
+		if boss_prep_done:
+			boss_spawned = true
+			_spawn_enemy(true)
+		else:
+			_show_upgrade_menu()
 	_refresh_ui()
 
 func _show_upgrade_menu() -> void:
@@ -501,24 +502,24 @@ func _show_upgrade_menu() -> void:
 	menu.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	overlay.add_child(menu)
 	var shade := ColorRect.new()
-	shade.color = Color(0.01, 0.025, 0.065, 0.93)
+	shade.color = Color(0.01, 0.025, 0.065, 0.97)
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	menu.add_child(shade)
 	var title := Label.new()
-	title.text = "SAVUNMA MOLASI\nBir güç seç"
-	title.position = Vector2(50, 300)
-	title.size = Vector2(620, 140)
+	title.text = "BOSS YAKLAŞIYOR!\nSon hazırlığını seç"
+	title.position = Vector2(25, 240)
+	title.size = Vector2(670, 170)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 32)
+	title.add_theme_font_size_override("font_size", 34)
 	menu.add_child(title)
 	var choices: Array[String] = ["SİLAH +8 HASAR", "KALEYİ +35 ONAR", "KALE ZIRHI (%25 AZ HASAR)"]
 	for i in range(choices.size()):
 		var choice_index: int = i
 		var button := Button.new()
 		button.text = choices[i]
-		button.position = Vector2(65, 490 + i * 105)
-		button.size = Vector2(590, 83)
-		button.add_theme_font_size_override("font_size", 22)
+		button.position = Vector2(25, 460 + i * 155)
+		button.size = Vector2(670, 125)
+		button.add_theme_font_size_override("font_size", 27)
 		button.pressed.connect(func() -> void:
 			match choice_index:
 				0:
@@ -528,6 +529,7 @@ func _show_upgrade_menu() -> void:
 				2:
 					base_resistance = maxf(0.5, base_resistance - 0.25)
 			menu.queue_free()
+			boss_prep_done = true
 			choosing_upgrade = false
 			_refresh_ui()
 		)
