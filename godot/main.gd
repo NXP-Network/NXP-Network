@@ -219,10 +219,10 @@ func _build_world() -> void:
 	_build_map_props()
 	camera = Camera3D.new()
 	camera.projection = Camera3D.PROJECTION_PERSPECTIVE
-	camera.fov = 50.0
-	camera.position = Vector3(7, 10, -12)
+	camera.fov = 58.0
+	camera.position = Vector3(4, 9, 10)
 	add_child(camera)
-	camera.look_at(Vector3(0, 1.0, 2.0))
+	camera.look_at(Vector3(0, 1.15, -3.0))
 	camera.current = true
 
 func _build_map_props() -> void:
@@ -337,7 +337,7 @@ func _spawn_core(pos: Vector3) -> void:
 
 func _spawn_enemy(boss: bool) -> void:
 	var root := Node3D.new()
-	root.position = Vector3(rng.randf_range(-5.0, 5.0), 0, rng.randf_range(-19.0, -13.0))
+	root.position = Vector3(rng.randf_range(-3.5, 3.5), 0, rng.randf_range(-10.5, -8.0))
 	add_child(root)
 	var scale_factor := 2.1 if boss else 1.0
 	root.scale = Vector3.ONE * scale_factor
@@ -388,7 +388,7 @@ func _process(delta: float) -> void:
 	player.position.z = clampf(player.position.z + movement.z * 6.2 * delta, -20, 20)
 	if movement.length() > 0.1:
 		player.rotation.y = atan2(-movement.x, -movement.z)
-	camera.position = camera.position.lerp(player.position + Vector3(7, 10, -12), minf(1.0, delta * 3.0))
+	camera.position = camera.position.lerp(player.position + Vector3(4, 9, 10), minf(1.0, delta * 3.0))
 	fire_timer = maxf(0.0, fire_timer - delta)
 	if fire_held or Input.is_action_pressed("fire"):
 		_shoot()
