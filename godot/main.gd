@@ -358,8 +358,9 @@ func _spawn_enemy(boss: bool) -> void:
 		spawned += 1
 	add_child(root)
 	# Every spider keeps the existing single-file spawn timing and route.
-	var kind := "queen" if boss else ["normal", "scout", "normal", "armored"][((spawned - 1) + 4) % 4]
-	var scale_factor := 2.1 if boss else 0.77 if kind == "scout" else 1.27 if kind == "armored" else 1.0
+	var kinds: Array[String] = ["normal", "scout", "normal", "armored"]
+	var kind: String = "queen" if boss else kinds[((spawned - 1) + 4) % 4]
+	var scale_factor: float = 2.1 if boss else 0.77 if kind == "scout" else 1.27 if kind == "armored" else 1.0
 	root.scale = Vector3.ONE * scale_factor
 	var shell := Color(0.28, 0.15, 0.22) if boss else Color(0.16, 0.2, 0.25)
 	if stage == 1:
@@ -393,8 +394,8 @@ func _spawn_enemy(boss: bool) -> void:
 		var side := float(side_value)
 		oval(root, Vector3(0.09, 0.09, 0.06), Vector3(side * 0.19, 0.87, -0.87), Color(0.85, 0.19, 0.2))
 		limb(root, Vector3(side * 0.21, 0.69, -0.77), Vector3(side * 0.25, 0.39, -0.98), 0.055, legs)
-	var enemy_hp := 220.0 + stage * 70.0 if boss else 110.0 + stage * 23.0 if kind == "armored" else 42.0 + stage * 12.0 if kind == "scout" else 65.0 + stage * 17.0
-	var enemy_speed := 0.9 + stage * 0.07 if boss else 1.95 + stage * 0.12 if kind == "scout" else 1.08 + stage * 0.08 if kind == "armored" else 1.45 + stage * 0.12
+	var enemy_hp: float = 220.0 + stage * 70.0 if boss else 110.0 + stage * 23.0 if kind == "armored" else 42.0 + stage * 12.0 if kind == "scout" else 65.0 + stage * 17.0
+	var enemy_speed: float = 0.9 + stage * 0.07 if boss else 1.95 + stage * 0.12 if kind == "scout" else 1.08 + stage * 0.08 if kind == "armored" else 1.45 + stage * 0.12
 	var bar_width := 1.4 if boss else 1.8
 	var bar := health_bar(root, 1.62, bar_width, Color(0.96, 0.31, 0.33))
 	enemies.append({"node": root, "hp": enemy_hp, "shown_hp": enemy_hp, "max_hp": enemy_hp, "bar": bar, "bar_width": bar_width, "speed": enemy_speed, "boss": boss, "kind": kind})
