@@ -35,6 +35,10 @@ var fire_timer := 0.0
 var spawn_timer := 0.8
 var game_over := false
 var boss_spawned := false
+var choosing_upgrade := false
+var last_upgrade_kills := 0
+var weapon_bonus := 0.0
+var base_resistance := 1.0
 var joy_origin := Vector2.ZERO
 var joy_direction := Vector2.ZERO
 var joy_pointer := -1
@@ -409,7 +413,7 @@ func _screen_axis_to_world(axis: Vector2) -> Vector3:
 	return (right.normalized() * axis.x - up.normalized() * axis.y).limit_length(1.0)
 
 func _process(delta: float) -> void:
-	if game_over:
+	if game_over or choosing_upgrade:
 		return
 	var axis := (Input.get_vector("move_left", "move_right", "move_forward", "move_back") + joy_direction).limit_length(1.0)
 	var movement := _screen_axis_to_world(axis)
@@ -438,7 +442,7 @@ func _process(delta: float) -> void:
 		else:
 			var damage := (22.0 if enemy["boss"] else 11.0) * delta
 			if target_position == base_node.position:
-				base_hp = maxf(0.0, base_hp - damage)
+				base_hp = maxf(0.0, base_hp - damage * base_resistance)
 			else:
 				hp = maxf(0.0, hp - damage)
 		enemy["shown_hp"] = move_toward(float(enemy["shown_hp"]), float(enemy["hp"]), float(enemy["max_hp"]) * delta * 0.6)
@@ -465,7 +469,7 @@ func _process(delta: float) -> void:
 			var enemy: Dictionary = enemies[j]
 			var target: Node3D = enemy["node"]
 			if mesh.position.distance_to(target.position + Vector3(0, 1, 0)) < (1.5 if enemy["boss"] else 0.8):
-				enemy["hp"] = float(enemy["hp"]) - (25.0 + level * 2.0)
+				enemy["hp"] = float(enemy["hp"]) - (25.0 + level * 2.0 + weapon_bonus)
 				hit = true
 				if float(enemy["hp"]) <= 0.0:
 					credits += 15 + stage * 5 if enemy["boss"] else 5 + stage * 2
@@ -484,7 +488,50 @@ func _process(delta: float) -> void:
 		_spawn_enemy(true)
 	if hp <= 0 or base_hp <= 0:
 		_end_game(false)
+	if not game_over and kills > 0 and kills % 3 == 0 and kills < kill_goal and kills != last_upgrade_kills:
+		last_upgrade_kills = kills
+		_show_upgrade_menu()
 	_refresh_ui()
+
+func _show_upgrade_menu() -> void:
+	choosing_upgrade = true
+	joy_direction = Vector2.ZERO
+	fire_held = false
+	var menu := Control.new()
+	menu.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.add_child(menu)
+	var shade := ColorRect.new()
+	shade.color = Color(0.01, 0.025, 0.065, 0.93)
+	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	menu.add_child(shade)
+	var title := Label.new()
+	title.text = "SAVUNMA MOLASI\nBir güç seç"
+	title.position = Vector2(50, 300)
+	title.size = Vector2(620, 140)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 32)
+	menu.add_child(title)
+	var choices: Array[String] = ["SİLAH +8 HASAR", "KALEYİ +35 ONAR", "KALE ZIRHI (%25 AZ HASAR)"]
+	for i in range(choices.size()):
+		var choice_index: int = i
+		var button := Button.new()
+		button.text = choices[i]
+		button.position = Vector2(65, 490 + i * 105)
+		button.size = Vector2(590, 83)
+		button.add_theme_font_size_override("font_size", 22)
+		button.pressed.connect(func() -> void:
+			match choice_index:
+				0:
+					weapon_bonus += 8.0
+				1:
+					base_hp = minf(150.0, base_hp + 35.0)
+				2:
+					base_resistance = maxf(0.5, base_resistance - 0.25)
+			menu.queue_free()
+			choosing_upgrade = false
+			_refresh_ui()
+		)
+		menu.add_child(button)
 
 func _shoot() -> void:
 	if fire_timer > 0 or game_over:
