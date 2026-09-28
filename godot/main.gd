@@ -218,11 +218,11 @@ func _build_world() -> void:
 		block(self, Vector3(0.96, 0.07, 0.96), Vector3(side * 7.5, 0.94, z), Color(0.55, 0.39, 0.21))
 	_build_map_props()
 	camera = Camera3D.new()
-	camera.projection = Camera3D.PROJECTION_ORTHOGONAL
-	camera.size = 16.5
-	camera.position = Vector3(8, 14, -14)
+	camera.projection = Camera3D.PROJECTION_PERSPECTIVE
+	camera.fov = 50.0
+	camera.position = Vector3(7, 10, -12)
 	add_child(camera)
-	camera.look_at(Vector3(0, 1.0, 0.7))
+	camera.look_at(Vector3(0, 1.0, 2.0))
 	camera.current = true
 
 func _build_map_props() -> void:
@@ -369,25 +369,33 @@ func _spawn_enemy(boss: bool) -> void:
 	var enemy_hp := 220.0 + stage * 70.0 if boss else 65.0 + stage * 17.0
 	var bar_width := 1.4 if boss else 1.8
 	var bar := health_bar(root, 1.62, bar_width, Color(0.96, 0.31, 0.33))
-	enemies.append({"node": root, "hp": enemy_hp, "shown_hp": enemy_hp, "max_hp": enemy_hp, "bar": bar, "bar_width": bar_width, "speed": 1.2 + stage * 0.1 if boss else 2.2 + stage * 0.2, "boss": boss})
+	enemies.append({"node": root, "hp": enemy_hp, "shown_hp": enemy_hp, "max_hp": enemy_hp, "bar": bar, "bar_width": bar_width, "speed": 0.9 + stage * 0.07 if boss else 1.45 + stage * 0.12, "boss": boss})
+
+func _screen_axis_to_world(axis: Vector2) -> Vector3:
+	# Camera axes make touch and keyboard directions match what is seen on screen.
+	var right := camera.global_basis.x
+	var up := camera.global_basis.y
+	right.y = 0
+	up.y = 0
+	return (right.normalized() * axis.x - up.normalized() * axis.y).limit_length(1.0)
 
 func _process(delta: float) -> void:
 	if game_over:
 		return
-	var direction := Input.get_vector("move_left", "move_right", "move_forward", "move_back") + joy_direction
-	direction = direction.limit_length(1.0)
-	player.position.x = clampf(player.position.x + direction.x * 6.2 * delta, -5.9, 5.9)
-	player.position.z = clampf(player.position.z + direction.y * 6.2 * delta, -20, 20)
-	if direction.length() > 0.1:
-		player.rotation.y = atan2(-direction.x, -direction.y)
-	camera.position = camera.position.lerp(player.position + Vector3(8, 14, -14), minf(1.0, delta * 3.0))
+	var axis := (Input.get_vector("move_left", "move_right", "move_forward", "move_back") + joy_direction).limit_length(1.0)
+	var movement := _screen_axis_to_world(axis)
+	player.position.x = clampf(player.position.x + movement.x * 6.2 * delta, -5.9, 5.9)
+	player.position.z = clampf(player.position.z + movement.z * 6.2 * delta, -20, 20)
+	if movement.length() > 0.1:
+		player.rotation.y = atan2(-movement.x, -movement.z)
+	camera.position = camera.position.lerp(player.position + Vector3(7, 10, -12), minf(1.0, delta * 3.0))
 	fire_timer = maxf(0.0, fire_timer - delta)
 	if fire_held or Input.is_action_pressed("fire"):
 		_shoot()
 	spawn_timer -= delta
 	if spawn_timer <= 0.0 and enemies.size() < 6 and not boss_spawned and kills < kill_goal:
 		_spawn_enemy(false)
-		spawn_timer = maxf(1.8, 2.8 - stage * 0.25)
+		spawn_timer = maxf(2.6, 3.6 - stage * 0.22)
 	for i in range(enemies.size() - 1, -1, -1):
 		var enemy: Dictionary = enemies[i]
 		var node: Node3D = enemy["node"]
@@ -452,7 +460,7 @@ func _process(delta: float) -> void:
 func _shoot() -> void:
 	if fire_timer > 0 or game_over:
 		return
-	fire_timer = 0.25
+	fire_timer = 0.15
 	var direction := -player.global_basis.z
 	var nearest := 13.0
 	for enemy in enemies:
@@ -469,7 +477,7 @@ func _shoot() -> void:
 	add_child(bolt)
 	block(bolt, Vector3(0.22, 0.22, 0.55), Vector3.ZERO, CYAN, true)
 	bolt.rotation.y = atan2(-direction.x, -direction.z)
-	bolts.append({"node": bolt, "velocity": direction * 19.0, "life": 0.85})
+	bolts.append({"node": bolt, "velocity": direction * 23.0, "life": 0.85})
 
 func _end_game(victory: bool) -> void:
 	if game_over:
