@@ -62,50 +62,80 @@ func block(parent: Node3D, size: Vector3, pos: Vector3, color: Color, glow: bool
 	parent.add_child(mesh)
 	return mesh
 
+func oval(parent: Node3D, radii: Vector3, pos: Vector3, color: Color) -> MeshInstance3D:
+	var node := MeshInstance3D.new()
+	var sphere := SphereMesh.new()
+	sphere.radius = 1.0
+	sphere.height = 2.0
+	node.mesh = sphere
+	node.scale = radii
+	node.position = pos
+	node.material_override = material(color)
+	parent.add_child(node)
+	return node
+
+func limb(parent: Node3D, start: Vector3, finish: Vector3, radius: float, color: Color) -> void:
+	var length := start.distance_to(finish)
+	var node := MeshInstance3D.new()
+	var cylinder := CylinderMesh.new()
+	cylinder.top_radius = radius
+	cylinder.bottom_radius = radius * 1.12
+	cylinder.height = length
+	node.mesh = cylinder
+	node.position = (start + finish) * 0.5
+	node.quaternion = Quaternion(Vector3.UP, (finish - start).normalized())
+	node.material_override = material(color)
+	parent.add_child(node)
+
 func _build_world() -> void:
 	var env := WorldEnvironment.new()
 	var settings := Environment.new()
 	settings.background_mode = Environment.BG_COLOR
-	settings.background_color = Color(0.015, 0.025, 0.06)
+	settings.background_color = Color(0.035, 0.05, 0.08)
 	settings.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	settings.ambient_light_color = Color(0.24, 0.36, 0.54)
-	settings.ambient_light_energy = 0.8
+	settings.ambient_light_color = Color(0.4, 0.48, 0.58)
+	settings.ambient_light_energy = 1.0
 	env.environment = settings
 	add_child(env)
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-55, -40, 0)
-	sun.light_color = CYAN
-	sun.light_energy = 0.65
+	sun.light_color = Color(0.64, 0.75, 0.86)
+	sun.light_energy = 0.85
 	add_child(sun)
-	block(self, Vector3(46, 0.2, 46), Vector3(0, -0.15, 0), Color(0.035, 0.055, 0.095))
-	block(self, Vector3(13, 0.03, 46), Vector3(0, 0, 0), Color(0.08, 0.12, 0.19))
+	block(self, Vector3(46, 0.2, 46), Vector3(0, -0.15, 0), Color(0.14, 0.18, 0.23))
+	block(self, Vector3(13, 0.03, 46), Vector3(0, 0, 0), Color(0.2, 0.24, 0.29))
+	# Asphalt panels and narrow seams make the walking surface legible on a phone.
+	for row in range(11):
+		for lane in range(3):
+			var shade := 0.21 if (row + lane) % 2 == 0 else 0.235
+			block(self, Vector3(3.7, 0.012, 3.75), Vector3((lane - 1) * 4.1, 0.027, -19.9 + row * 4.0), Color(shade, shade + 0.035, shade + 0.075))
 	for z in range(-20, 22, 4):
-		block(self, Vector3(0.12, 0.025, 1.8), Vector3(0, 0.04, z), AMBER, true)
+		block(self, Vector3(0.08, 0.03, 1.4), Vector3(0, 0.042, z), Color(0.6, 0.43, 0.23))
 	for side_value in [-1, 1]:
 		var side := float(side_value)
-		block(self, Vector3(0.12, 0.08, 45), Vector3(side * 6.4, 0.02, 0), CYAN, true)
+		block(self, Vector3(0.1, 0.055, 45), Vector3(side * 6.4, 0.02, 0), Color(0.11, 0.42, 0.5))
 		for row in range(6):
 			var z := -19.0 + row * 7.5
 			var height := rng.randf_range(4.0, 10.0)
 			var x: float = side * rng.randf_range(10.5, 15.0)
 			block(self, Vector3(5.2, height, 5.7), Vector3(x, height * 0.5, z), Color(0.045, 0.065, 0.12))
 			for level in range(1, int(height / 1.15)):
-				var tint: Color = PINK if (row + level) % 3 == 0 else CYAN
+				var tint: Color = Color(0.5, 0.13, 0.32) if (row + level) % 3 == 0 else Color(0.13, 0.42, 0.5)
 				block(self, Vector3(0.06, 0.09, 0.7), Vector3(x - side * 2.64, level * 1.1, z - 1.5), tint, true)
 				block(self, Vector3(0.06, 0.09, 0.7), Vector3(x - side * 2.64, level * 1.1, z + 1.5), tint, true)
-			block(self, Vector3(5.3, 0.09, 0.08), Vector3(x, height, z - 2.8), PINK if row % 2 else CYAN, true)
+			block(self, Vector3(5.3, 0.09, 0.08), Vector3(x, height, z - 2.8), Color(0.4, 0.12, 0.3) if row % 2 else Color(0.1, 0.35, 0.43), true)
 			if row % 2 == 0:
 				block(self, Vector3(0.12, 3.3, 0.12), Vector3(side * 7.3, 1.65, z), Color(0.3, 0.38, 0.5))
-				block(self, Vector3(0.8, 0.14, 0.5), Vector3(side * 7.3, 3.3, z), AMBER, true)
+				block(self, Vector3(0.8, 0.14, 0.5), Vector3(side * 7.3, 3.3, z), Color(0.56, 0.36, 0.18))
 	for i in range(12):
 		var side: float = -1.0 if i % 2 == 0 else 1.0
 		var z := rng.randf_range(-19.0, 19.0)
 		block(self, Vector3(0.9, 0.9, 0.9), Vector3(side * rng.randf_range(6.9, 8.5), 0.45, z), Color(0.24, 0.19, 0.16))
-		block(self, Vector3(0.96, 0.07, 0.96), Vector3(side * 7.5, 0.94, z), AMBER, true)
+		block(self, Vector3(0.96, 0.07, 0.96), Vector3(side * 7.5, 0.94, z), Color(0.55, 0.39, 0.21))
 	camera = Camera3D.new()
 	camera.projection = Camera3D.PROJECTION_ORTHOGONAL
-	camera.size = 23.0
-	camera.position = Vector3(16, 21, 18)
+	camera.size = 19.0
+	camera.position = Vector3(12, 23, 17)
 	add_child(camera)
 	camera.look_at(Vector3.ZERO)
 	camera.current = true
@@ -113,15 +143,20 @@ func _build_world() -> void:
 func _build_player() -> void:
 	player = Node3D.new()
 	add_child(player)
-	block(player, Vector3(0.85, 1.2, 0.6), Vector3(0, 1.05, 0), Color(0.09, 0.15, 0.26))
-	block(player, Vector3(0.72, 0.65, 0.7), Vector3(0, 1.92, 0), Color(0.12, 0.18, 0.3))
-	block(player, Vector3(0.65, 0.13, 0.08), Vector3(0, 1.96, -0.38), CYAN, true)
-	for side in [-1, 1]:
-		block(player, Vector3(0.27, 0.85, 0.34), Vector3(side * 0.32, 0.43, 0), Color(0.06, 0.09, 0.18))
-		block(player, Vector3(0.12, 0.55, 0.1), Vector3(side * 0.32, 0.4, -0.22), CYAN, true)
-		block(player, Vector3(0.23, 0.85, 0.3), Vector3(side * 0.57, 1.0, 0), Color(0.09, 0.14, 0.25))
-	block(player, Vector3(0.28, 0.24, 0.85), Vector3(0.6, 1.05, -0.48), Color(0.3, 0.35, 0.45))
-	block(player, Vector3(0.3, 0.1, 0.15), Vector3(0.6, 1.08, -0.95), PINK, true)
+	var suit := Color(0.23, 0.33, 0.43)
+	var skin := Color(0.73, 0.48, 0.33)
+	oval(player, Vector3(0.39, 0.56, 0.27), Vector3(0, 1.25, 0), suit)
+	oval(player, Vector3(0.27, 0.32, 0.26), Vector3(0, 2.08, 0), skin)
+	block(player, Vector3(0.51, 0.13, 0.29), Vector3(0, 2.31, 0), Color(0.11, 0.15, 0.2))
+	block(player, Vector3(0.54, 0.07, 0.08), Vector3(0, 2.08, -0.265), Color(0.18, 0.56, 0.6))
+	for side_value in [-1, 1]:
+		var side := float(side_value)
+		limb(player, Vector3(side * 0.2, 0.91, 0), Vector3(side * 0.25, 0.16, 0.05), 0.17, Color(0.16, 0.23, 0.3))
+		block(player, Vector3(0.3, 0.17, 0.52), Vector3(side * 0.26, 0.09, -0.16), Color(0.11, 0.15, 0.2))
+		limb(player, Vector3(side * 0.4, 1.61, 0), Vector3(side * 0.61, 1.08, -0.24), 0.13, suit)
+		oval(player, Vector3(0.12, 0.13, 0.12), Vector3(side * 0.62, 1.04, -0.25), skin)
+	block(player, Vector3(0.23, 0.21, 0.67), Vector3(0.64, 1.1, -0.62), Color(0.14, 0.17, 0.2))
+	block(player, Vector3(0.22, 0.1, 0.12), Vector3(0.64, 1.1, -1.0), Color(0.37, 0.18, 0.23))
 
 func _spawn_core(pos: Vector3) -> void:
 	var root := Node3D.new()
@@ -139,12 +174,21 @@ func _spawn_enemy(boss: bool) -> void:
 	add_child(root)
 	var scale_factor := 2.1 if boss else 1.0
 	root.scale = Vector3.ONE * scale_factor
-	block(root, Vector3(0.85, 1.2, 0.7), Vector3(0, 1.0, 0), Color(0.28, 0.08, 0.17))
-	block(root, Vector3(0.7, 0.66, 0.65), Vector3(0, 1.93, 0), Color(0.21, 0.08, 0.15))
-	block(root, Vector3(0.57, 0.12, 0.1), Vector3(0, 1.94, -0.36), PINK, true)
-	for side in [-1, 1]:
-		block(root, Vector3(0.24, 0.8, 0.3), Vector3(side * 0.3, 0.42, 0), Color(0.12, 0.07, 0.15))
-		block(root, Vector3(0.2, 0.8, 0.3), Vector3(side * 0.56, 1.03, 0), Color(0.15, 0.07, 0.16))
+	var shell := Color(0.28, 0.15, 0.22) if boss else Color(0.16, 0.2, 0.25)
+	var legs := Color(0.25, 0.15, 0.19) if boss else Color(0.13, 0.17, 0.21)
+	oval(root, Vector3(0.65, 0.37, 0.72), Vector3(0, 0.78, 0.42), shell)
+	oval(root, Vector3(0.42, 0.29, 0.43), Vector3(0, 0.76, -0.49), shell.lightened(0.15))
+	for side_value in [-1, 1]:
+		var side := float(side_value)
+		for leg_index in range(4):
+			var z: float = -0.6 + leg_index * 0.42
+			var knee := Vector3(side * (0.95 + leg_index * 0.08), 0.95, z * 1.7)
+			var foot := Vector3(side * (1.35 + leg_index * 0.16), 0.1, z * 2.2)
+			limb(root, Vector3(side * 0.34, 0.78, z), knee, 0.09, legs)
+			limb(root, knee, foot, 0.065, legs)
+	for side_value in [-1, 1]:
+		var side := float(side_value)
+		oval(root, Vector3(0.09, 0.09, 0.06), Vector3(side * 0.19, 0.87, -0.87), Color(0.85, 0.19, 0.2))
 	enemies.append({"node": root, "hp": 220.0 if boss else 65.0, "speed": 1.2 if boss else 2.2, "boss": boss})
 
 func _process(delta: float) -> void:
@@ -156,7 +200,7 @@ func _process(delta: float) -> void:
 	player.position.z = clampf(player.position.z + direction.y * 6.2 * delta, -20, 20)
 	if direction.length() > 0.1:
 		player.rotation.y = atan2(-direction.x, -direction.y)
-	camera.position = camera.position.lerp(player.position + Vector3(16, 21, 18), minf(1.0, delta * 3.0))
+	camera.position = camera.position.lerp(player.position + Vector3(12, 23, 17), minf(1.0, delta * 3.0))
 	fire_timer = maxf(0.0, fire_timer - delta)
 	if fire_held or Input.is_action_pressed("fire"):
 		_shoot()
@@ -357,4 +401,4 @@ func _fire_input(event: InputEvent) -> void:
 
 func _refresh_ui() -> void:
 	hud.text = "NXP // NEON DISTRICT\nCAN %d / 100    •    KREDİ %d" % [ceili(hp), credits]
-	mission.text = "BOSS: MUTANT BRUTE" if boss_spawned else "GÖREV: %d/8 düşman   •   %d/3 çekirdek" % [mini(kills, 8), 3 - cores.size()]
+	mission.text = "BOSS: ÖRÜMCEK KRALİÇE" if boss_spawned else "GÖREV: %d/8 düşman   •   %d/3 çekirdek" % [mini(kills, 8), 3 - cores.size()]
