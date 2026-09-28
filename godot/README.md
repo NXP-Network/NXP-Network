@@ -8,7 +8,7 @@ Normal örümceğin yanında daha hızlı ama daha az canlı izciler ve daha yav
 
 Bölgeler sırayla **Neon District** (şehir), **Data Wasteland** (çöl ve harabeler), **Quantum Port** (liman ve konteynerler), **Orbital Core** (uzay istasyonu) olarak açılır. İnsan karakter, örümcekler, kale ve çevre Godot içinde üç boyutlu geometriyle oluşturulur. Yüz ve zırh, eklemli örümcek bacakları ve farklı kabuk renkleri eklenmiştir. Modeller hâlâ prototiptir; sinematik gerçekçilik için ileride Blender modelleri, dokular ve animasyonlar gerekir.
 
-Karakter (`models/character.glb`), kale (`models/castle.glb`) ve dört örümcek türü (`models/spider_*.glb`) artık ayrı 3D model dosyaları olarak yüklenir. Model dosyaları `python tools/build_models.py` ile yeniden üretilebilir. Mevcut oynanış, can çubukları, mobil kontroller ve kayıt düzeni bu dosyalardan bağımsızdır. Modeller hafif ve renklendirilmiş geometri kullanır; ayrıntılı dokular ve animasyon henüz yoktur.
+Karakter (`models/character.glb`), kale (`models/castle.glb`) ve dört örümcek türü (`models/spider_*.glb`) artık ayrı 3D model dosyaları olarak yüklenir. Model dosyaları `python tools/build_models.py` ile yeniden üretilebilir ve `python tools/validate_models.py` ile yapısal olarak kontrol edilebilir. Yüzeylerinde düşük çözünürlüklü kumaş, kabuk ve taş dokuları vardır. Karakter ve örümcekler hareket sırasında hafifçe salınır; bacaklara bağlı iskelet animasyonu henüz yoktur. Mevcut oynanış, can çubukları, mobil kontroller ve kayıt düzeni korunur.
 
 Görsel ayrıntı geçişi başladı: karaktere kask vizörü, omuz ve diz zırhı ile sırt ekipmanı; kale kapısına taş çerçeve, ahşap kalas ve metal kuşaklar; örümceklere gövde altı ve çene eklendi. Bu parçalar mevcut 3D geometriyi kullanır ve temel oynanışı değiştirmez.
 

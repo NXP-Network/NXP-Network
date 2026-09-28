@@ -1,10 +1,12 @@
 """Build compact, deterministic glTF models for Godot 4 without external tools."""
 import json
+import io
 import math
 import struct
 from pathlib import Path
 
 import numpy as np
+from PIL import Image
 
 ROOT = Path(__file__).resolve().parent.parent / "models"
 ROOT.mkdir(exist_ok=True)
@@ -16,12 +18,16 @@ class Model:
 
     def triangle(self, color, a, b, c):
         key = tuple(color)
-        part = self.parts.setdefault(key, ([], []))
+        part = self.parts.setdefault(key, ([], [], []))
         normal = np.cross(np.subtract(b, a), np.subtract(c, a))
         normal = normal / max(float(np.linalg.norm(normal)), 1e-8)
+        facing = int(np.argmax(np.abs(normal)))
         for point in (a, b, c):
             part[0].extend(point)
             part[1].extend(normal)
+            # Planar UVs keep the small procedural texture coherent across faces.
+            uv = (point[0], point[1]) if facing == 2 else (point[2], point[1]) if facing == 0 else (point[0], point[2])
+            part[2].extend((uv[0] * 1.8, uv[1] * 1.8))
 
     def quad(self, color, a, b, c, d):
         self.triangle(color, a, b, c)
@@ -63,28 +69,51 @@ class Model:
 
     def write(self, path):
         binary = bytearray()
-        views, accessors, meshes, nodes, materials = [], [], [], [], []
-        for color, (positions, normals) in self.parts.items():
+        views, accessors, meshes, nodes, materials, images, textures = [], [], [], [], [], [], []
+        for color, (positions, normals, uvs) in self.parts.items():
             attrs = {}
-            for name, values in (("POSITION", positions), ("NORMAL", normals)):
+            for name, values, width in (("POSITION", positions, 3), ("NORMAL", normals, 3), ("TEXCOORD_0", uvs, 2)):
                 while len(binary) % 4:
                     binary.append(0)
                 offset = len(binary)
                 raw = np.asarray(values, dtype="<f4")
                 binary.extend(raw.tobytes())
                 views.append({"buffer":0,"byteOffset":offset,"byteLength":raw.nbytes,"target":34962})
-                accessor = {"bufferView":len(views)-1,"componentType":5126,"count":len(values)//3,"type":"VEC3"}
+                accessor = {"bufferView":len(views)-1,"componentType":5126,"count":len(values)//width,"type":"VEC3" if width == 3 else "VEC2"}
                 if name == "POSITION":
                     coords = raw.reshape((-1,3))
                     accessor.update(min=coords.min(axis=0).tolist(),max=coords.max(axis=0).tolist())
                 accessors.append(accessor)
                 attrs[name] = len(accessors)-1
-            materials.append({"pbrMetallicRoughness":{"baseColorFactor":[*color,1],"metallicFactor":0.12,"roughnessFactor":0.85},"doubleSided":True})
+            tile = Image.new("RGB", (64, 64))
+            for y in range(64):
+                for x in range(64):
+                    grain = ((x*19+y*31+(x*y)%13) % 29) - 14
+                    if path == "castle.glb" and color[0] > 0.25:
+                        grain -= 28 if y%19 < 2 or (x+(y//19)*21)%35 < 2 else 0
+                    elif path == "castle.glb":
+                        grain -= 12 if y%9 < 2 else 0
+                    else:
+                        grain -= 11 if (x//4+y//4)%2 else 0
+                    value = max(170,min(255,229+grain))
+                    tile.putpixel((x,y),(value,value,value))
+            output = io.BytesIO()
+            tile.save(output,format="PNG")
+            while len(binary) % 4:
+                binary.append(0)
+            offset = len(binary)
+            png = output.getvalue()
+            binary.extend(png)
+            views.append({"buffer":0,"byteOffset":offset,"byteLength":len(png)})
+            images.append({"bufferView":len(views)-1,"mimeType":"image/png"})
+            textures.append({"source":len(images)-1,"sampler":0})
+            materials.append({"pbrMetallicRoughness":{"baseColorFactor":[*color,1],"baseColorTexture":{"index":len(textures)-1},"metallicFactor":0.12,"roughnessFactor":0.85},"doubleSided":True})
             meshes.append({"primitives":[{"attributes":attrs,"material":len(materials)-1,"mode":4}]})
             nodes.append({"mesh":len(meshes)-1})
         scene = {"asset":{"version":"2.0","generator":"NXP model builder"},
                  "buffers":[{"byteLength":len(binary)}],"bufferViews":views,"accessors":accessors,
-                 "materials":materials,"meshes":meshes,"nodes":nodes,
+                 "materials":materials,"meshes":meshes,"nodes":nodes,"images":images,"textures":textures,
+                 "samplers":[{"magFilter":9729,"minFilter":9987,"wrapS":10497,"wrapT":10497}],
                  "scenes":[{"nodes":list(range(len(nodes)))}],"scene":0}
         encoded = json.dumps(scene,separators=(",",":")).encode()
         encoded += b" " * (-len(encoded) % 4)

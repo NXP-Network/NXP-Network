@@ -15,6 +15,7 @@ const SPIDER_ARMORED = preload("res://models/spider_armored.glb")
 const SPIDER_QUEEN = preload("res://models/spider_queen.glb")
 
 var player: Node3D
+var player_visual: Node3D
 var camera: Camera3D
 var enemies: Array[Dictionary] = []
 var cores: Array[Node3D] = []
@@ -283,7 +284,8 @@ func _build_base() -> void:
 func _build_player() -> void:
 	player = Node3D.new()
 	add_child(player)
-	player.add_child(CHARACTER_SCENE.instantiate())
+	player_visual = CHARACTER_SCENE.instantiate() as Node3D
+	player.add_child(player_visual)
 	player_bar = health_bar(player, 2.86, 1.7, Color(0.35, 0.9, 0.48))
 
 func _spawn_core(pos: Vector3) -> void:
@@ -305,12 +307,13 @@ func _spawn_enemy(boss: bool) -> void:
 	var kinds: Array[String] = ["normal", "scout", "normal", "armored"]
 	var kind: String = "queen" if boss else kinds[((spawned - 1) + 4) % 4]
 	var model: PackedScene = SPIDER_QUEEN if boss else SPIDER_SCOUT if kind == "scout" else SPIDER_ARMORED if kind == "armored" else SPIDER_NORMAL
-	root.add_child(model.instantiate())
+	var visual := model.instantiate() as Node3D
+	root.add_child(visual)
 	var enemy_hp: float = 220.0 + stage * 70.0 if boss else 110.0 + stage * 23.0 if kind == "armored" else 42.0 + stage * 12.0 if kind == "scout" else 65.0 + stage * 17.0
 	var enemy_speed: float = 0.9 + stage * 0.07 if boss else 1.95 + stage * 0.12 if kind == "scout" else 1.08 + stage * 0.08 if kind == "armored" else 1.45 + stage * 0.12
 	var bar_width := 2.9 if boss else 1.8
 	var bar := health_bar(root, 3.35 if boss else 1.62, bar_width, Color(0.96, 0.31, 0.33))
-	enemies.append({"node": root, "hp": enemy_hp, "shown_hp": enemy_hp, "max_hp": enemy_hp, "bar": bar, "bar_width": bar_width, "speed": enemy_speed, "boss": boss, "kind": kind})
+	enemies.append({"node": root, "visual": visual, "hp": enemy_hp, "shown_hp": enemy_hp, "max_hp": enemy_hp, "bar": bar, "bar_width": bar_width, "speed": enemy_speed, "boss": boss, "kind": kind})
 
 func _screen_axis_to_world(axis: Vector2) -> Vector3:
 	# Camera axes make touch and keyboard directions match what is seen on screen.
@@ -329,6 +332,9 @@ func _process(delta: float) -> void:
 	player.position.z = clampf(player.position.z + movement.z * 6.2 * delta, -20, 20)
 	if movement.length() > 0.1:
 		player.rotation.y = atan2(-movement.x, -movement.z)
+	var gait: float = Time.get_ticks_msec() * 0.012
+	player_visual.position.y = (0.04 if movement.length() > 0.1 else 0.012) * sin(gait)
+	player_visual.rotation.z = (0.025 if movement.length() > 0.1 else 0.006) * sin(gait * 0.5)
 	camera.position = camera.position.lerp(player.position + Vector3(4, 9, 10), minf(1.0, delta * 3.0))
 	fire_timer = maxf(0.0, fire_timer - delta)
 	if fire_held or Input.is_action_pressed("fire"):
@@ -341,6 +347,10 @@ func _process(delta: float) -> void:
 	for i in range(enemies.size() - 1, -1, -1):
 		var enemy: Dictionary = enemies[i]
 		var node: Node3D = enemy["node"]
+		var visual: Node3D = enemy["visual"]
+		var stride: float = Time.get_ticks_msec() * 0.008 + float(i) * 1.4
+		visual.position.y = 0.035 * sin(stride * 2.0)
+		visual.rotation.z = 0.045 * sin(stride)
 		var target_position: Vector3 = player.position if node.position.distance_to(player.position) < 3.5 else base_node.position
 		var toward: Vector3 = target_position - node.position
 		toward.y = 0
