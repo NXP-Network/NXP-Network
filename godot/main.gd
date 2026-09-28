@@ -22,6 +22,12 @@ var stage := 0
 var unlocked := 0
 var base_hp := 150.0
 var base_node: Node3D
+var base_bar: MeshInstance3D
+var base_display_hp := 150.0
+var player_bar: MeshInstance3D
+var player_display_hp := 100.0
+var stone_texture: Texture2D
+var road_texture: Texture2D
 var kill_goal := 8
 var choosing_map := false
 var fire_timer := 0.0
@@ -72,13 +78,36 @@ func _save_progress() -> void:
 func material(color: Color, glow: bool = false) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
 	m.albedo_color = color
-	m.metallic = 0.35
-	m.roughness = 0.32
+	m.metallic = 0.08
+	m.roughness = 0.7
 	if glow:
 		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		m.emission_enabled = true
 		m.emission = color
 	return m
+
+func pattern_texture(bricks: bool) -> Texture2D:
+	var img := Image.create(96, 96, false, Image.FORMAT_RGBA8)
+	for y in range(96):
+		for x in range(96):
+			var variation := float((x * 73 + y * 47 + x * y * 13) % 31) / 180.0
+			var value := 0.83 + variation
+			if bricks:
+				var shifted_x := (x + (int(y / 18) % 2) * 20) % 40
+				if y % 18 < 2 or shifted_x < 2:
+					value = 0.57
+			else:
+				if (x + y * 7) % 53 < 2:
+					value -= 0.08
+			img.set_pixel(x, y, Color(value, value, value))
+	return ImageTexture.create_from_image(img)
+
+func stone_block(parent: Node3D, size: Vector3, pos: Vector3, color: Color) -> MeshInstance3D:
+	var mesh := block(parent, size, pos, color)
+	var stone := material(color)
+	stone.albedo_texture = stone_texture
+	mesh.material_override = stone
+	return mesh
 
 func block(parent: Node3D, size: Vector3, pos: Vector3, color: Color, glow: bool = false) -> MeshInstance3D:
 	var mesh := MeshInstance3D.new()
@@ -102,6 +131,21 @@ func oval(parent: Node3D, radii: Vector3, pos: Vector3, color: Color) -> MeshIns
 	parent.add_child(node)
 	return node
 
+func health_bar(parent: Node3D, position_y: float, width: float, tint: Color) -> MeshInstance3D:
+	var holder := Node3D.new()
+	holder.position.y = position_y
+	parent.add_child(holder)
+	block(holder, Vector3(width + 0.13, 0.2, 0.11), Vector3.ZERO, Color(0.035, 0.045, 0.06))
+	var fill := block(holder, Vector3(width, 0.105, 0.13), Vector3(0, 0, -0.08), tint, true)
+	return fill
+
+func set_bar(fill: MeshInstance3D, health: float, total: float, width: float) -> void:
+	var fraction := clampf(health / total, 0.0, 1.0)
+	fill.scale.x = fraction
+	fill.position.x = -(1.0 - fraction) * width * 0.5
+	var holder := fill.get_parent() as Node3D
+	holder.global_rotation = camera.global_rotation
+
 func limb(parent: Node3D, start: Vector3, finish: Vector3, radius: float, color: Color) -> void:
 	var length := start.distance_to(finish)
 	var node := MeshInstance3D.new()
@@ -116,6 +160,8 @@ func limb(parent: Node3D, start: Vector3, finish: Vector3, radius: float, color:
 	parent.add_child(node)
 
 func _build_world() -> void:
+	stone_texture = pattern_texture(true)
+	road_texture = pattern_texture(false)
 	var env := WorldEnvironment.new()
 	var settings := Environment.new()
 	settings.background_mode = Environment.BG_COLOR
@@ -129,6 +175,7 @@ func _build_world() -> void:
 	sun.rotation_degrees = Vector3(-55, -40, 0)
 	sun.light_color = Color(0.64, 0.75, 0.86)
 	sun.light_energy = 0.85
+	sun.shadow_enabled = true
 	add_child(sun)
 	var ground: Color = [Color(0.14, 0.18, 0.23), Color(0.26, 0.2, 0.14), Color(0.04, 0.17, 0.22), Color(0.11, 0.1, 0.19)][stage]
 	var road: Color = [Color(0.2, 0.24, 0.29), Color(0.32, 0.26, 0.19), Color(0.21, 0.29, 0.34), Color(0.25, 0.26, 0.35)][stage]
@@ -138,9 +185,16 @@ func _build_world() -> void:
 	for row in range(11):
 		for lane in range(3):
 			var tile: Color = road.lightened(0.07) if (row + lane) % 2 == 0 else road.darkened(0.03)
-			block(self, Vector3(3.7, 0.012, 3.75), Vector3((lane - 1) * 4.1, 0.027, -19.9 + row * 4.0), tile)
+			var paving := block(self, Vector3(3.7, 0.012, 3.75), Vector3((lane - 1) * 4.1, 0.027, -19.9 + row * 4.0), tile)
+			var surface := material(tile)
+			surface.albedo_texture = road_texture
+			paving.material_override = surface
 	for z in range(-20, 22, 4):
 		block(self, Vector3(0.08, 0.03, 1.4), Vector3(0, 0.042, z), Color(0.6, 0.43, 0.23))
+	for i in range(18):
+		var x := rng.randf_range(-5.6, 5.6)
+		var z := rng.randf_range(-20, 20)
+		block(self, Vector3(rng.randf_range(0.5, 1.8), 0.013, rng.randf_range(0.2, 0.8)), Vector3(x, 0.048, z), road.darkened(0.16))
 	for side_value in ([-1, 1] if stage == 0 else []):
 		var side := float(side_value)
 		block(self, Vector3(0.1, 0.055, 45), Vector3(side * 6.4, 0.02, 0), Color(0.11, 0.42, 0.5))
@@ -165,10 +219,10 @@ func _build_world() -> void:
 	_build_map_props()
 	camera = Camera3D.new()
 	camera.projection = Camera3D.PROJECTION_ORTHOGONAL
-	camera.size = 19.0
-	camera.position = Vector3(12, 23, 17)
+	camera.size = 16.5
+	camera.position = Vector3(8, 14, -14)
 	add_child(camera)
-	camera.look_at(Vector3.ZERO)
+	camera.look_at(Vector3(0, 1.0, 0.7))
 	camera.current = true
 
 func _build_map_props() -> void:
@@ -197,40 +251,81 @@ func _build_map_props() -> void:
 
 func _build_base() -> void:
 	base_node = Node3D.new()
-	base_node.position = Vector3(0, 0, 6.5)
+	base_node.position = Vector3(0, 0, 7.5)
 	add_child(base_node)
-	var wall: Color = [Color(0.36, 0.41, 0.46), Color(0.43, 0.36, 0.29), Color(0.28, 0.41, 0.45), Color(0.36, 0.35, 0.5)][stage]
-	block(base_node, Vector3(4.0, 2.6, 3.4), Vector3(0, 1.3, 0), wall)
-	block(base_node, Vector3(4.7, 0.38, 4.1), Vector3(0, 2.78, 0), wall.darkened(0.25))
+	var wall: Color = [Color(0.46, 0.49, 0.52), Color(0.52, 0.42, 0.32), Color(0.35, 0.51, 0.55), Color(0.43, 0.41, 0.57)][stage]
+	var trim := wall.darkened(0.26)
+	# Rear keep, curtain walls, central gatehouse and four crenellated towers.
+	stone_block(base_node, Vector3(4.4, 4.0, 3.0), Vector3(0, 2.0, 1.6), wall)
+	block(base_node, Vector3(4.9, 0.25, 3.5), Vector3(0, 4.1, 1.6), trim)
+	stone_block(base_node, Vector3(2.7, 2.65, 0.7), Vector3(-2.7, 1.32, -2.15), wall)
+	stone_block(base_node, Vector3(2.7, 2.65, 0.7), Vector3(2.7, 1.32, -2.15), wall)
+	stone_block(base_node, Vector3(0.75, 3.0, 4.4), Vector3(-3.75, 1.5, 0.05), wall)
+	stone_block(base_node, Vector3(0.75, 3.0, 4.4), Vector3(3.75, 1.5, 0.05), wall)
+	block(base_node, Vector3(1.72, 2.15, 0.13), Vector3(0, 1.08, -2.58), Color(0.12, 0.1, 0.09))
+	block(base_node, Vector3(1.88, 0.34, 0.8), Vector3(0, 2.75, -2.15), trim)
+	for k in range(-2, 3):
+		block(base_node, Vector3(0.16, 2.0, 0.12), Vector3(k * 0.3, 1.04, -2.66), Color(0.23, 0.19, 0.16))
+	block(base_node, Vector3(0.11, 0.11, 0.17), Vector3(0, 1.15, -2.76), AMBER)
+	for k in range(7):
+		var x := -3.3 + k * 1.1
+		if absf(x) > 1.0:
+			stone_block(base_node, Vector3(0.64, 0.55, 0.73), Vector3(x, 2.94, -2.15), wall.lightened(0.08))
+	for k in range(5):
+		stone_block(base_node, Vector3(0.65, 0.53, 0.73), Vector3(-2.1 + k * 1.05, 4.48, -0.03), wall.lightened(0.08))
 	for side_value in [-1, 1]:
 		var side := float(side_value)
-		block(base_node, Vector3(0.85, 3.9, 0.85), Vector3(side * 2.1, 1.95, -1.7), wall.darkened(0.1))
-		block(base_node, Vector3(0.78, 0.16, 0.78), Vector3(side * 2.1, 3.95, -1.7), wall.lightened(0.12))
-		block(base_node, Vector3(0.54, 0.6, 0.08), Vector3(side * 1.28, 1.6, -1.76), Color(0.15, 0.2, 0.25))
-	block(base_node, Vector3(1.1, 1.55, 0.09), Vector3(0, 0.78, -1.76), Color(0.11, 0.14, 0.17))
-	block(base_node, Vector3(1.8, 0.12, 0.1), Vector3(0, 2.25, -1.76), Color(0.23, 0.45, 0.47))
-	block(base_node, Vector3(5.5, 0.13, 0.2), Vector3(0, 0.12, -3.0), Color(0.34, 0.4, 0.42))
+		for front_back in [-1, 1]:
+			var z := -2.2 if front_back == -1 else 3.2
+			var tower := MeshInstance3D.new()
+			var cylinder := CylinderMesh.new()
+			cylinder.top_radius = 0.95
+			cylinder.bottom_radius = 1.05
+			cylinder.height = 4.9
+			tower.mesh = cylinder
+			tower.position = Vector3(side * 4.0, 2.45, z)
+			var tower_stone := material(wall.darkened(0.06))
+			tower_stone.albedo_texture = stone_texture
+			tower.material_override = tower_stone
+			base_node.add_child(tower)
+			block(base_node, Vector3(2.15, 0.27, 2.15), Vector3(side * 4.0, 5.0, z), trim)
+			for corner in [-1, 1]:
+				stone_block(base_node, Vector3(0.52, 0.54, 0.52), Vector3(side * 4.0 + corner * 0.73, 5.38, z - 0.72), wall)
+				stone_block(base_node, Vector3(0.52, 0.54, 0.52), Vector3(side * 4.0 + corner * 0.73, 5.38, z + 0.72), wall)
+			block(base_node, Vector3(0.55, 0.7, 0.1), Vector3(side * 4.0, 3.3, z - 1.02), Color(0.11, 0.17, 0.2))
+		block(base_node, Vector3(0.75, 0.95, 0.11), Vector3(side * 1.28, 2.2, -0.08), Color(0.13, 0.22, 0.29))
+		block(base_node, Vector3(0.78, 0.09, 0.13), Vector3(side * 1.28, 2.25, -0.16), Color(0.22, 0.58, 0.66))
+	block(base_node, Vector3(1.6, 0.19, 0.1), Vector3(0, 3.36, -2.58), Color(0.13, 0.39, 0.49))
+	base_bar = health_bar(base_node, 6.15, 4.2, Color(0.27, 0.83, 0.56))
 
 func _build_player() -> void:
 	player = Node3D.new()
 	add_child(player)
-	var suit := Color(0.23, 0.33, 0.43)
+	var suit := Color(0.19, 0.23, 0.29)
 	var skin := Color(0.73, 0.48, 0.33)
 	oval(player, Vector3(0.39, 0.56, 0.27), Vector3(0, 1.25, 0), suit)
 	oval(player, Vector3(0.27, 0.32, 0.26), Vector3(0, 2.08, 0), skin)
-	block(player, Vector3(0.51, 0.13, 0.29), Vector3(0, 2.31, 0), Color(0.11, 0.15, 0.2))
-	block(player, Vector3(0.54, 0.07, 0.08), Vector3(0, 2.08, -0.265), Color(0.18, 0.56, 0.6))
+	oval(player, Vector3(0.28, 0.2, 0.27), Vector3(0, 2.29, 0.08), Color(0.11, 0.1, 0.11))
+	for eye_side in [-1, 1]:
+		oval(player, Vector3(0.042, 0.034, 0.02), Vector3(eye_side * 0.12, 2.1, -0.256), Color(0.12, 0.1, 0.09))
 	for side_value in [-1, 1]:
 		var side := float(side_value)
 		limb(player, Vector3(side * 0.2, 0.91, 0), Vector3(side * 0.25, 0.16, 0.05), 0.17, Color(0.16, 0.23, 0.3))
 		block(player, Vector3(0.3, 0.17, 0.52), Vector3(side * 0.26, 0.09, -0.16), Color(0.11, 0.15, 0.2))
-		limb(player, Vector3(side * 0.4, 1.61, 0), Vector3(side * 0.61, 1.08, -0.24), 0.13, suit)
-		oval(player, Vector3(0.12, 0.13, 0.12), Vector3(side * 0.62, 1.04, -0.25), skin)
-	block(player, Vector3(0.23, 0.21, 0.67), Vector3(0.64, 1.1, -0.62), Color(0.14, 0.17, 0.2))
-	block(player, Vector3(0.22, 0.1, 0.12), Vector3(0.64, 1.1, -1.0), Color(0.37, 0.18, 0.23))
+		limb(player, Vector3(side * 0.42, 1.68, -0.05), Vector3(side * 0.33, 1.27, -0.72), 0.135, suit)
+		oval(player, Vector3(0.12, 0.12, 0.12), Vector3(side * 0.31, 1.28, -0.74), Color(0.08, 0.1, 0.12))
+	# Long rifle across both hands: stock, receiver, grip, scope and muzzle.
+	block(player, Vector3(0.34, 0.27, 0.95), Vector3(0, 1.26, -0.58), Color(0.09, 0.11, 0.13))
+	block(player, Vector3(0.39, 0.3, 0.45), Vector3(0, 1.27, -1.16), Color(0.23, 0.26, 0.27))
+	limb(player, Vector3(0, 1.28, -1.25), Vector3(0, 1.28, -2.18), 0.095, Color(0.14, 0.16, 0.18))
+	block(player, Vector3(0.27, 0.22, 0.17), Vector3(0, 1.28, -2.2), Color(0.4, 0.28, 0.21))
+	block(player, Vector3(0.18, 0.3, 0.24), Vector3(0, 0.95, -1.16), Color(0.12, 0.14, 0.16))
+	block(player, Vector3(0.22, 0.14, 0.42), Vector3(0, 1.52, -1.12), Color(0.07, 0.09, 0.11))
+	block(player, Vector3(0.14, 0.1, 0.12), Vector3(0, 1.55, -1.37), Color(0.16, 0.48, 0.57))
 	block(player, Vector3(0.56, 0.4, 0.11), Vector3(0, 1.4, -0.28), suit.lightened(0.22))
 	block(player, Vector3(0.45, 0.52, 0.18), Vector3(0, 1.35, 0.31), Color(0.13, 0.18, 0.21))
 	block(player, Vector3(0.42, 0.12, 0.38), Vector3(0, 0.83, 0), Color(0.14, 0.19, 0.24))
+	player_bar = health_bar(player, 2.86, 1.7, Color(0.35, 0.9, 0.48))
 
 func _spawn_core(pos: Vector3) -> void:
 	var root := Node3D.new()
@@ -271,7 +366,10 @@ func _spawn_enemy(boss: bool) -> void:
 		var side := float(side_value)
 		oval(root, Vector3(0.09, 0.09, 0.06), Vector3(side * 0.19, 0.87, -0.87), Color(0.85, 0.19, 0.2))
 		limb(root, Vector3(side * 0.21, 0.69, -0.77), Vector3(side * 0.25, 0.39, -0.98), 0.055, legs)
-	enemies.append({"node": root, "hp": 220.0 + stage * 70.0 if boss else 65.0 + stage * 17.0, "speed": 1.2 + stage * 0.1 if boss else 2.2 + stage * 0.2, "boss": boss})
+	var enemy_hp := 220.0 + stage * 70.0 if boss else 65.0 + stage * 17.0
+	var bar_width := 1.4 if boss else 1.8
+	var bar := health_bar(root, 1.62, bar_width, Color(0.96, 0.31, 0.33))
+	enemies.append({"node": root, "hp": enemy_hp, "shown_hp": enemy_hp, "max_hp": enemy_hp, "bar": bar, "bar_width": bar_width, "speed": 1.2 + stage * 0.1 if boss else 2.2 + stage * 0.2, "boss": boss})
 
 func _process(delta: float) -> void:
 	if game_over:
@@ -282,7 +380,7 @@ func _process(delta: float) -> void:
 	player.position.z = clampf(player.position.z + direction.y * 6.2 * delta, -20, 20)
 	if direction.length() > 0.1:
 		player.rotation.y = atan2(-direction.x, -direction.y)
-	camera.position = camera.position.lerp(player.position + Vector3(12, 23, 17), minf(1.0, delta * 3.0))
+	camera.position = camera.position.lerp(player.position + Vector3(8, 14, -14), minf(1.0, delta * 3.0))
 	fire_timer = maxf(0.0, fire_timer - delta)
 	if fire_held or Input.is_action_pressed("fire"):
 		_shoot()
@@ -306,6 +404,12 @@ func _process(delta: float) -> void:
 				base_hp = maxf(0.0, base_hp - damage)
 			else:
 				hp = maxf(0.0, hp - damage)
+		enemy["shown_hp"] = move_toward(float(enemy["shown_hp"]), float(enemy["hp"]), float(enemy["max_hp"]) * delta * 0.6)
+		set_bar(enemy["bar"], float(enemy["shown_hp"]), float(enemy["max_hp"]), float(enemy["bar_width"]))
+	player_display_hp = move_toward(player_display_hp, hp, 55.0 * delta)
+	base_display_hp = move_toward(base_display_hp, base_hp, 70.0 * delta)
+	set_bar(player_bar, player_display_hp, 100.0, 1.7)
+	set_bar(base_bar, base_display_hp, 150.0, 4.2)
 	for i in range(cores.size() - 1, -1, -1):
 		var core := cores[i]
 		core.rotate_y(delta * 1.7)
