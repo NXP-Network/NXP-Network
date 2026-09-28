@@ -281,6 +281,13 @@ func _build_base() -> void:
 	stone_block(base_node, Vector3(0.75, 3.0, 4.4), Vector3(-3.75, 1.5, 0.05), wall)
 	stone_block(base_node, Vector3(0.75, 3.0, 4.4), Vector3(3.75, 1.5, 0.05), wall)
 	block(base_node, Vector3(1.72, 2.15, 0.13), Vector3(0, 1.08, -2.58), Color(0.12, 0.1, 0.09))
+	# Gate frame, wooden door planks and visible iron bands.
+	for gate_side in [-1, 1]:
+		stone_block(base_node, Vector3(0.28, 2.4, 0.32), Vector3(gate_side * 1.04, 1.2, -2.65), wall.lightened(0.08))
+	for plank in range(6):
+		block(base_node, Vector3(0.24, 1.88, 0.08), Vector3(-0.65 + plank * 0.26, 1.03, -2.69), Color(0.2 + plank % 2 * 0.025, 0.14, 0.11))
+	for band_y in [0.55, 1.7]:
+		block(base_node, Vector3(1.75, 0.09, 0.07), Vector3(0, band_y, -2.74), Color(0.1, 0.12, 0.14))
 	block(base_node, Vector3(1.88, 0.34, 0.8), Vector3(0, 2.75, -2.15), trim)
 	for k in range(-2, 3):
 		block(base_node, Vector3(0.16, 2.0, 0.12), Vector3(k * 0.3, 1.04, -2.66), Color(0.23, 0.19, 0.16))
@@ -324,11 +331,15 @@ func _build_player() -> void:
 	oval(player, Vector3(0.39, 0.56, 0.27), Vector3(0, 1.25, 0), suit)
 	oval(player, Vector3(0.27, 0.32, 0.26), Vector3(0, 2.08, 0), skin)
 	oval(player, Vector3(0.28, 0.2, 0.27), Vector3(0, 2.29, 0.08), Color(0.11, 0.1, 0.11))
+	block(player, Vector3(0.43, 0.11, 0.18), Vector3(0, 2.25, -0.2), Color(0.1, 0.13, 0.16))
+	block(player, Vector3(0.3, 0.1, 0.13), Vector3(0, 2.11, -0.28), Color(0.24, 0.36, 0.39))
 	for eye_side in [-1, 1]:
 		oval(player, Vector3(0.042, 0.034, 0.02), Vector3(eye_side * 0.12, 2.1, -0.256), Color(0.12, 0.1, 0.09))
 	for side_value in [-1, 1]:
 		var side := float(side_value)
+		oval(player, Vector3(0.19, 0.15, 0.24), Vector3(side * 0.41, 1.72, -0.03), suit.lightened(0.12))
 		limb(player, Vector3(side * 0.2, 0.91, 0), Vector3(side * 0.25, 0.16, 0.05), 0.17, Color(0.16, 0.23, 0.3))
+		block(player, Vector3(0.25, 0.3, 0.2), Vector3(side * 0.24, 0.73, -0.13), Color(0.1, 0.13, 0.17))
 		block(player, Vector3(0.3, 0.17, 0.52), Vector3(side * 0.26, 0.09, -0.16), Color(0.11, 0.15, 0.2))
 		limb(player, Vector3(side * 0.42, 1.68, -0.05), Vector3(side * 0.33, 1.27, -0.72), 0.135, suit)
 		oval(player, Vector3(0.12, 0.12, 0.12), Vector3(side * 0.31, 1.28, -0.74), Color(0.08, 0.1, 0.12))
@@ -342,6 +353,8 @@ func _build_player() -> void:
 	block(player, Vector3(0.14, 0.1, 0.12), Vector3(0, 1.55, -1.37), Color(0.16, 0.48, 0.57))
 	block(player, Vector3(0.56, 0.4, 0.11), Vector3(0, 1.4, -0.28), suit.lightened(0.22))
 	block(player, Vector3(0.45, 0.52, 0.18), Vector3(0, 1.35, 0.31), Color(0.13, 0.18, 0.21))
+	block(player, Vector3(0.38, 0.26, 0.15), Vector3(0, 1.29, 0.43), Color(0.09, 0.12, 0.15))
+	block(player, Vector3(0.32, 0.09, 0.18), Vector3(0, 1.46, 0.45), Color(0.27, 0.35, 0.36))
 	block(player, Vector3(0.42, 0.12, 0.38), Vector3(0, 0.83, 0), Color(0.14, 0.19, 0.24))
 	player_bar = health_bar(player, 2.86, 1.7, Color(0.35, 0.9, 0.48))
 
@@ -379,7 +392,10 @@ func _spawn_enemy(boss: bool) -> void:
 		shell = Color(0.35, 0.33, 0.42)
 	var legs := Color(0.25, 0.15, 0.19) if boss else Color(0.13, 0.17, 0.21)
 	oval(root, Vector3(0.65, 0.37, 0.72), Vector3(0, 0.78, 0.42), shell)
+	oval(root, Vector3(0.58, 0.21, 0.65), Vector3(0, 0.64, 0.45), shell.darkened(0.35))
 	oval(root, Vector3(0.42, 0.29, 0.43), Vector3(0, 0.76, -0.49), shell.lightened(0.15))
+	for fang_side in [-1, 1]:
+		limb(root, Vector3(fang_side * 0.19, 0.64, -0.75), Vector3(fang_side * 0.16, 0.37, -1.03), 0.06, legs)
 	for stripe in range(3):
 		oval(root, Vector3(0.44 - stripe * 0.08, 0.04, 0.06), Vector3(0, 1.11 + stripe * 0.025, 0.05 + stripe * 0.27), shell.lightened(0.35))
 	if kind == "armored":
