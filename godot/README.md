@@ -8,6 +8,8 @@ Normal örümceğin yanında daha hızlı ama daha az canlı izciler ve daha yav
 
 Bölgeler sırayla **Neon District** (şehir), **Data Wasteland** (çöl ve harabeler), **Quantum Port** (liman ve konteynerler), **Orbital Core** (uzay istasyonu) olarak açılır. İnsan karakter, örümcekler, kale ve çevre Godot içinde üç boyutlu geometriyle oluşturulur. Yüz ve zırh, eklemli örümcek bacakları ve farklı kabuk renkleri eklenmiştir. Modeller hâlâ prototiptir; sinematik gerçekçilik için ileride Blender modelleri, dokular ve animasyonlar gerekir.
 
+Görsel ayrıntı geçişi başladı: karaktere kask vizörü, omuz ve diz zırhı ile sırt ekipmanı; kale kapısına taş çerçeve, ahşap kalas ve metal kuşaklar; örümceklere gövde altı ve çene eklendi. Bu parçalar mevcut 3D geometriyi kullanır ve temel oynanışı değiştirmez.
+
 Görsel sürümde perspektif 3D kamera karakteri arkadan, karşıdan gelen örümcekleri önde gösterir. Örümcekler açılışta kamera görüşünün içinde doğar. Sol yön kontrolü ve WASD/ok tuşları ekrandaki sağ, sol, yukarı ve aşağı yönlerine göre hareket eder. Örümcekler daha yavaş ilerler, tüfek daha hızlı ateş eder. Karakterin iki elle tuttuğu tüfek; kalenin taş dokulu surları, kapısı, dört kulesi ve mazgalları vardır. Karakter, kale ve her örümceğin üzerinde can çubuğu bulunur; hasardan sonra çubuk yavaşça azalır. Bu modeller oyun içinde gerçek 3D geometriyle çizilir. Tanıtım görselindeki ayrıntı düzeyine ulaşmak için ayrıca profesyonel karakter, yaratık ve çevre modelleri ile animasyonlar gerekecektir.
 
 Neon District'te sınırlı mavi ve mor tabelalar ile ıslak zemin parçaları; Data Wasteland'de sıcak gün ışığı ve kum tonları kullanılır. Böylece mevcut 3D dünya, tanıtım görsellerinin bölgelere özgü ışık ve renklerine yaklaşır.
