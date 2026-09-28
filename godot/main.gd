@@ -7,6 +7,12 @@ const AMBER := Color(1.0, 0.65, 0.24)
 const WORLD := 22.0
 const MAPS := ["NEON DISTRICT", "DATA WASTELAND", "QUANTUM PORT", "ORBITAL CORE"]
 const SAVE_PATH := "user://nxp_defense.cfg"
+const CHARACTER_SCENE = preload("res://models/character.glb")
+const CASTLE_SCENE = preload("res://models/castle.glb")
+const SPIDER_NORMAL = preload("res://models/spider_normal.glb")
+const SPIDER_SCOUT = preload("res://models/spider_scout.glb")
+const SPIDER_ARMORED = preload("res://models/spider_armored.glb")
+const SPIDER_QUEEN = preload("res://models/spider_queen.glb")
 
 var player: Node3D
 var camera: Camera3D
@@ -271,91 +277,13 @@ func _build_base() -> void:
 	base_node = Node3D.new()
 	base_node.position = Vector3(0, 0, 7.5)
 	add_child(base_node)
-	var wall: Color = [Color(0.46, 0.49, 0.52), Color(0.52, 0.42, 0.32), Color(0.35, 0.51, 0.55), Color(0.43, 0.41, 0.57)][stage]
-	var trim := wall.darkened(0.26)
-	# Rear keep, curtain walls, central gatehouse and four crenellated towers.
-	stone_block(base_node, Vector3(4.4, 4.0, 3.0), Vector3(0, 2.0, 1.6), wall)
-	block(base_node, Vector3(4.9, 0.25, 3.5), Vector3(0, 4.1, 1.6), trim)
-	stone_block(base_node, Vector3(2.7, 2.65, 0.7), Vector3(-2.7, 1.32, -2.15), wall)
-	stone_block(base_node, Vector3(2.7, 2.65, 0.7), Vector3(2.7, 1.32, -2.15), wall)
-	stone_block(base_node, Vector3(0.75, 3.0, 4.4), Vector3(-3.75, 1.5, 0.05), wall)
-	stone_block(base_node, Vector3(0.75, 3.0, 4.4), Vector3(3.75, 1.5, 0.05), wall)
-	block(base_node, Vector3(1.72, 2.15, 0.13), Vector3(0, 1.08, -2.58), Color(0.12, 0.1, 0.09))
-	# Gate frame, wooden door planks and visible iron bands.
-	for gate_side in [-1, 1]:
-		stone_block(base_node, Vector3(0.28, 2.4, 0.32), Vector3(gate_side * 1.04, 1.2, -2.65), wall.lightened(0.08))
-	for plank in range(6):
-		block(base_node, Vector3(0.24, 1.88, 0.08), Vector3(-0.65 + plank * 0.26, 1.03, -2.69), Color(0.2 + plank % 2 * 0.025, 0.14, 0.11))
-	for band_y in [0.55, 1.7]:
-		block(base_node, Vector3(1.75, 0.09, 0.07), Vector3(0, band_y, -2.74), Color(0.1, 0.12, 0.14))
-	block(base_node, Vector3(1.88, 0.34, 0.8), Vector3(0, 2.75, -2.15), trim)
-	for k in range(-2, 3):
-		block(base_node, Vector3(0.16, 2.0, 0.12), Vector3(k * 0.3, 1.04, -2.66), Color(0.23, 0.19, 0.16))
-	block(base_node, Vector3(0.11, 0.11, 0.17), Vector3(0, 1.15, -2.76), AMBER)
-	for k in range(7):
-		var x := -3.3 + k * 1.1
-		if absf(x) > 1.0:
-			stone_block(base_node, Vector3(0.64, 0.55, 0.73), Vector3(x, 2.94, -2.15), wall.lightened(0.08))
-	for k in range(5):
-		stone_block(base_node, Vector3(0.65, 0.53, 0.73), Vector3(-2.1 + k * 1.05, 4.48, -0.03), wall.lightened(0.08))
-	for side_value in [-1, 1]:
-		var side := float(side_value)
-		for front_back in [-1, 1]:
-			var z := -2.2 if front_back == -1 else 3.2
-			var tower := MeshInstance3D.new()
-			var cylinder := CylinderMesh.new()
-			cylinder.top_radius = 0.95
-			cylinder.bottom_radius = 1.05
-			cylinder.height = 4.9
-			tower.mesh = cylinder
-			tower.position = Vector3(side * 4.0, 2.45, z)
-			var tower_stone := material(wall.darkened(0.06))
-			tower_stone.albedo_texture = stone_texture
-			tower.material_override = tower_stone
-			base_node.add_child(tower)
-			block(base_node, Vector3(2.15, 0.27, 2.15), Vector3(side * 4.0, 5.0, z), trim)
-			for corner in [-1, 1]:
-				stone_block(base_node, Vector3(0.52, 0.54, 0.52), Vector3(side * 4.0 + corner * 0.73, 5.38, z - 0.72), wall)
-				stone_block(base_node, Vector3(0.52, 0.54, 0.52), Vector3(side * 4.0 + corner * 0.73, 5.38, z + 0.72), wall)
-			block(base_node, Vector3(0.55, 0.7, 0.1), Vector3(side * 4.0, 3.3, z - 1.02), Color(0.11, 0.17, 0.2))
-		block(base_node, Vector3(0.75, 0.95, 0.11), Vector3(side * 1.28, 2.2, -0.08), Color(0.13, 0.22, 0.29))
-		block(base_node, Vector3(0.78, 0.09, 0.13), Vector3(side * 1.28, 2.25, -0.16), Color(0.22, 0.58, 0.66))
-	block(base_node, Vector3(1.6, 0.19, 0.1), Vector3(0, 3.36, -2.58), Color(0.13, 0.39, 0.49))
+	base_node.add_child(CASTLE_SCENE.instantiate())
 	base_bar = health_bar(base_node, 6.15, 4.2, Color(0.27, 0.83, 0.56))
 
 func _build_player() -> void:
 	player = Node3D.new()
 	add_child(player)
-	var suit := Color(0.19, 0.23, 0.29)
-	var skin := Color(0.73, 0.48, 0.33)
-	oval(player, Vector3(0.39, 0.56, 0.27), Vector3(0, 1.25, 0), suit)
-	oval(player, Vector3(0.27, 0.32, 0.26), Vector3(0, 2.08, 0), skin)
-	oval(player, Vector3(0.28, 0.2, 0.27), Vector3(0, 2.29, 0.08), Color(0.11, 0.1, 0.11))
-	block(player, Vector3(0.43, 0.11, 0.18), Vector3(0, 2.25, -0.2), Color(0.1, 0.13, 0.16))
-	block(player, Vector3(0.3, 0.1, 0.13), Vector3(0, 2.11, -0.28), Color(0.24, 0.36, 0.39))
-	for eye_side in [-1, 1]:
-		oval(player, Vector3(0.042, 0.034, 0.02), Vector3(eye_side * 0.12, 2.1, -0.256), Color(0.12, 0.1, 0.09))
-	for side_value in [-1, 1]:
-		var side := float(side_value)
-		oval(player, Vector3(0.19, 0.15, 0.24), Vector3(side * 0.41, 1.72, -0.03), suit.lightened(0.12))
-		limb(player, Vector3(side * 0.2, 0.91, 0), Vector3(side * 0.25, 0.16, 0.05), 0.17, Color(0.16, 0.23, 0.3))
-		block(player, Vector3(0.25, 0.3, 0.2), Vector3(side * 0.24, 0.73, -0.13), Color(0.1, 0.13, 0.17))
-		block(player, Vector3(0.3, 0.17, 0.52), Vector3(side * 0.26, 0.09, -0.16), Color(0.11, 0.15, 0.2))
-		limb(player, Vector3(side * 0.42, 1.68, -0.05), Vector3(side * 0.33, 1.27, -0.72), 0.135, suit)
-		oval(player, Vector3(0.12, 0.12, 0.12), Vector3(side * 0.31, 1.28, -0.74), Color(0.08, 0.1, 0.12))
-	# Long rifle across both hands: stock, receiver, grip, scope and muzzle.
-	block(player, Vector3(0.34, 0.27, 0.95), Vector3(0, 1.26, -0.58), Color(0.09, 0.11, 0.13))
-	block(player, Vector3(0.39, 0.3, 0.45), Vector3(0, 1.27, -1.16), Color(0.23, 0.26, 0.27))
-	limb(player, Vector3(0, 1.28, -1.25), Vector3(0, 1.28, -2.18), 0.095, Color(0.14, 0.16, 0.18))
-	block(player, Vector3(0.27, 0.22, 0.17), Vector3(0, 1.28, -2.2), Color(0.4, 0.28, 0.21))
-	block(player, Vector3(0.18, 0.3, 0.24), Vector3(0, 0.95, -1.16), Color(0.12, 0.14, 0.16))
-	block(player, Vector3(0.22, 0.14, 0.42), Vector3(0, 1.52, -1.12), Color(0.07, 0.09, 0.11))
-	block(player, Vector3(0.14, 0.1, 0.12), Vector3(0, 1.55, -1.37), Color(0.16, 0.48, 0.57))
-	block(player, Vector3(0.56, 0.4, 0.11), Vector3(0, 1.4, -0.28), suit.lightened(0.22))
-	block(player, Vector3(0.45, 0.52, 0.18), Vector3(0, 1.35, 0.31), Color(0.13, 0.18, 0.21))
-	block(player, Vector3(0.38, 0.26, 0.15), Vector3(0, 1.29, 0.43), Color(0.09, 0.12, 0.15))
-	block(player, Vector3(0.32, 0.09, 0.18), Vector3(0, 1.46, 0.45), Color(0.27, 0.35, 0.36))
-	block(player, Vector3(0.42, 0.12, 0.38), Vector3(0, 0.83, 0), Color(0.14, 0.19, 0.24))
+	player.add_child(CHARACTER_SCENE.instantiate())
 	player_bar = health_bar(player, 2.86, 1.7, Color(0.35, 0.9, 0.48))
 
 func _spawn_core(pos: Vector3) -> void:
@@ -374,50 +302,14 @@ func _spawn_enemy(boss: bool) -> void:
 	if not boss:
 		spawned += 1
 	add_child(root)
-	# Every spider keeps the existing single-file spawn timing and route.
 	var kinds: Array[String] = ["normal", "scout", "normal", "armored"]
 	var kind: String = "queen" if boss else kinds[((spawned - 1) + 4) % 4]
-	var scale_factor: float = 2.1 if boss else 0.77 if kind == "scout" else 1.27 if kind == "armored" else 1.0
-	root.scale = Vector3.ONE * scale_factor
-	var shell := Color(0.28, 0.15, 0.22) if boss else Color(0.16, 0.2, 0.25)
-	if stage == 1:
-		shell = Color(0.35, 0.24, 0.16)
-	elif stage == 2:
-		shell = Color(0.13, 0.28, 0.3)
-	elif stage == 3:
-		shell = Color(0.3, 0.22, 0.39)
-	if kind == "scout":
-		shell = Color(0.24, 0.42, 0.38)
-	elif kind == "armored":
-		shell = Color(0.35, 0.33, 0.42)
-	var legs := Color(0.25, 0.15, 0.19) if boss else Color(0.13, 0.17, 0.21)
-	oval(root, Vector3(0.65, 0.37, 0.72), Vector3(0, 0.78, 0.42), shell)
-	oval(root, Vector3(0.58, 0.21, 0.65), Vector3(0, 0.64, 0.45), shell.darkened(0.35))
-	oval(root, Vector3(0.42, 0.29, 0.43), Vector3(0, 0.76, -0.49), shell.lightened(0.15))
-	for fang_side in [-1, 1]:
-		limb(root, Vector3(fang_side * 0.19, 0.64, -0.75), Vector3(fang_side * 0.16, 0.37, -1.03), 0.06, legs)
-	for stripe in range(3):
-		oval(root, Vector3(0.44 - stripe * 0.08, 0.04, 0.06), Vector3(0, 1.11 + stripe * 0.025, 0.05 + stripe * 0.27), shell.lightened(0.35))
-	if kind == "armored":
-		for plate in range(3):
-			block(root, Vector3(0.62, 0.09, 0.24), Vector3(0, 1.15, -0.1 + plate * 0.34), shell.lightened(0.22))
-	for side_value in [-1, 1]:
-		var side := float(side_value)
-		for leg_index in range(4):
-			var z: float = -0.6 + leg_index * 0.42
-			var knee := Vector3(side * (0.95 + leg_index * 0.08), 0.95, z * 1.7)
-			var foot := Vector3(side * (1.35 + leg_index * 0.16), 0.1, z * 2.2)
-			limb(root, Vector3(side * 0.34, 0.78, z), knee, 0.09, legs)
-			limb(root, knee, foot, 0.065, legs)
-			oval(root, Vector3(0.1, 0.1, 0.1), knee, legs.lightened(0.13))
-	for side_value in [-1, 1]:
-		var side := float(side_value)
-		oval(root, Vector3(0.09, 0.09, 0.06), Vector3(side * 0.19, 0.87, -0.87), Color(0.85, 0.19, 0.2))
-		limb(root, Vector3(side * 0.21, 0.69, -0.77), Vector3(side * 0.25, 0.39, -0.98), 0.055, legs)
+	var model: PackedScene = SPIDER_QUEEN if boss else SPIDER_SCOUT if kind == "scout" else SPIDER_ARMORED if kind == "armored" else SPIDER_NORMAL
+	root.add_child(model.instantiate())
 	var enemy_hp: float = 220.0 + stage * 70.0 if boss else 110.0 + stage * 23.0 if kind == "armored" else 42.0 + stage * 12.0 if kind == "scout" else 65.0 + stage * 17.0
 	var enemy_speed: float = 0.9 + stage * 0.07 if boss else 1.95 + stage * 0.12 if kind == "scout" else 1.08 + stage * 0.08 if kind == "armored" else 1.45 + stage * 0.12
-	var bar_width := 1.4 if boss else 1.8
-	var bar := health_bar(root, 1.62, bar_width, Color(0.96, 0.31, 0.33))
+	var bar_width := 2.9 if boss else 1.8
+	var bar := health_bar(root, 3.35 if boss else 1.62, bar_width, Color(0.96, 0.31, 0.33))
 	enemies.append({"node": root, "hp": enemy_hp, "shown_hp": enemy_hp, "max_hp": enemy_hp, "bar": bar, "bar_width": bar_width, "speed": enemy_speed, "boss": boss, "kind": kind})
 
 func _screen_axis_to_world(axis: Vector2) -> Vector3:
