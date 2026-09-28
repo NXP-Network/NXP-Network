@@ -1,10 +1,12 @@
 extends Node3D
 
-# Self-contained first playable Godot 4 prototype. All geometry is built at runtime.
+# Four-map mobile defense prototype. Geometry is built at runtime.
 const CYAN := Color(0.15, 0.87, 1.0)
 const PINK := Color(1.0, 0.19, 0.59)
 const AMBER := Color(1.0, 0.65, 0.24)
 const WORLD := 22.0
+const MAPS := ["NEON DISTRICT", "DATA WASTELAND", "QUANTUM PORT", "ORBITAL CORE"]
+const SAVE_PATH := "user://nxp_defense.cfg"
 
 var player: Node3D
 var camera: Camera3D
@@ -15,6 +17,13 @@ var rng := RandomNumberGenerator.new()
 var hp := 100.0
 var kills := 0
 var credits := 0
+var level := 1
+var stage := 0
+var unlocked := 0
+var base_hp := 150.0
+var base_node: Node3D
+var kill_goal := 8
+var choosing_map := false
 var fire_timer := 0.0
 var spawn_timer := 0.0
 var game_over := false
@@ -31,15 +40,34 @@ var mission: Label
 var overlay: Control
 
 func _ready() -> void:
-	rng.seed = 42028
+	_load_progress()
+	rng.seed = 42028 + stage * 101
+	kill_goal = 8 + stage * 2
 	_build_world()
+	_build_base()
 	_build_player()
 	_build_ui()
 	for i in range(3):
-		_spawn_core(Vector3(-7.0 + i * 7.0, 0, -7.0 + (i % 2) * 10.0))
+		_spawn_core(Vector3(-4.2 + i * 4.2, 0, -3.0 + (i % 2) * 4.0))
 	for i in range(5):
 		_spawn_enemy(false)
 	_refresh_ui()
+
+func _load_progress() -> void:
+	var save := ConfigFile.new()
+	if save.load(SAVE_PATH) == OK:
+		unlocked = clampi(int(save.get_value("progress", "unlocked", 0)), 0, MAPS.size() - 1)
+		stage = clampi(int(save.get_value("progress", "stage", 0)), 0, unlocked)
+		level = maxi(1, int(save.get_value("progress", "level", 1)))
+		credits = maxi(0, int(save.get_value("progress", "credits", 0)))
+
+func _save_progress() -> void:
+	var save := ConfigFile.new()
+	save.set_value("progress", "stage", stage)
+	save.set_value("progress", "unlocked", unlocked)
+	save.set_value("progress", "level", level)
+	save.set_value("progress", "credits", credits)
+	save.save(SAVE_PATH)
 
 func material(color: Color, glow: bool = false) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
@@ -91,7 +119,7 @@ func _build_world() -> void:
 	var env := WorldEnvironment.new()
 	var settings := Environment.new()
 	settings.background_mode = Environment.BG_COLOR
-	settings.background_color = Color(0.035, 0.05, 0.08)
+	settings.background_color = [Color(0.035, 0.05, 0.08), Color(0.16, 0.11, 0.08), Color(0.04, 0.11, 0.17), Color(0.055, 0.035, 0.12)][stage]
 	settings.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	settings.ambient_light_color = Color(0.4, 0.48, 0.58)
 	settings.ambient_light_energy = 1.0
@@ -102,16 +130,18 @@ func _build_world() -> void:
 	sun.light_color = Color(0.64, 0.75, 0.86)
 	sun.light_energy = 0.85
 	add_child(sun)
-	block(self, Vector3(46, 0.2, 46), Vector3(0, -0.15, 0), Color(0.14, 0.18, 0.23))
-	block(self, Vector3(13, 0.03, 46), Vector3(0, 0, 0), Color(0.2, 0.24, 0.29))
+	var ground: Color = [Color(0.14, 0.18, 0.23), Color(0.26, 0.2, 0.14), Color(0.04, 0.17, 0.22), Color(0.11, 0.1, 0.19)][stage]
+	var road: Color = [Color(0.2, 0.24, 0.29), Color(0.32, 0.26, 0.19), Color(0.21, 0.29, 0.34), Color(0.25, 0.26, 0.35)][stage]
+	block(self, Vector3(46, 0.2, 46), Vector3(0, -0.15, 0), ground)
+	block(self, Vector3(13, 0.03, 46), Vector3(0, 0, 0), road)
 	# Asphalt panels and narrow seams make the walking surface legible on a phone.
 	for row in range(11):
 		for lane in range(3):
-			var shade := 0.21 if (row + lane) % 2 == 0 else 0.235
-			block(self, Vector3(3.7, 0.012, 3.75), Vector3((lane - 1) * 4.1, 0.027, -19.9 + row * 4.0), Color(shade, shade + 0.035, shade + 0.075))
+			var tile: Color = road.lightened(0.07) if (row + lane) % 2 == 0 else road.darkened(0.03)
+			block(self, Vector3(3.7, 0.012, 3.75), Vector3((lane - 1) * 4.1, 0.027, -19.9 + row * 4.0), tile)
 	for z in range(-20, 22, 4):
 		block(self, Vector3(0.08, 0.03, 1.4), Vector3(0, 0.042, z), Color(0.6, 0.43, 0.23))
-	for side_value in [-1, 1]:
+	for side_value in ([-1, 1] if stage == 0 else []):
 		var side := float(side_value)
 		block(self, Vector3(0.1, 0.055, 45), Vector3(side * 6.4, 0.02, 0), Color(0.11, 0.42, 0.5))
 		for row in range(6):
@@ -127,11 +157,12 @@ func _build_world() -> void:
 			if row % 2 == 0:
 				block(self, Vector3(0.12, 3.3, 0.12), Vector3(side * 7.3, 1.65, z), Color(0.3, 0.38, 0.5))
 				block(self, Vector3(0.8, 0.14, 0.5), Vector3(side * 7.3, 3.3, z), Color(0.56, 0.36, 0.18))
-	for i in range(12):
+	for i in range(12 if stage == 0 else 0):
 		var side: float = -1.0 if i % 2 == 0 else 1.0
 		var z := rng.randf_range(-19.0, 19.0)
 		block(self, Vector3(0.9, 0.9, 0.9), Vector3(side * rng.randf_range(6.9, 8.5), 0.45, z), Color(0.24, 0.19, 0.16))
 		block(self, Vector3(0.96, 0.07, 0.96), Vector3(side * 7.5, 0.94, z), Color(0.55, 0.39, 0.21))
+	_build_map_props()
 	camera = Camera3D.new()
 	camera.projection = Camera3D.PROJECTION_ORTHOGONAL
 	camera.size = 19.0
@@ -139,6 +170,46 @@ func _build_world() -> void:
 	add_child(camera)
 	camera.look_at(Vector3.ZERO)
 	camera.current = true
+
+func _build_map_props() -> void:
+	if stage == 0:
+		return
+	for side_value in [-1, 1]:
+		var side := float(side_value)
+		for i in range(7):
+			var z := -19.0 + i * 6.2
+			if stage == 1:
+				# Sandy wasteland with rock piles, ruined walls and rusted equipment.
+				oval(self, Vector3(1.8, 0.7, 1.2), Vector3(side * 9.5, 0.4, z), Color(0.4, 0.31, 0.23))
+				block(self, Vector3(0.55, 2.6, 3.0), Vector3(side * 12.2, 1.3, z + 1.8), Color(0.31, 0.25, 0.22))
+				block(self, Vector3(2.3, 0.9, 1.1), Vector3(side * 8.2, 0.45, z - 1.4), Color(0.32, 0.27, 0.24))
+			elif stage == 2:
+				# Water surrounds a cargo dock with alternating containers.
+				block(self, Vector3(14, 0.02, 46), Vector3(side * 15.0, 0.005, 0), Color(0.04, 0.21, 0.29))
+				block(self, Vector3(3.4, 2.4, 5.3), Vector3(side * 10.5, 1.2, z), Color(0.19, 0.32, 0.38) if i % 2 else Color(0.46, 0.24, 0.18))
+				for seam in range(4):
+					block(self, Vector3(0.06, 2.2, 0.06), Vector3(side * 8.75, 1.2, z - 1.9 + seam * 1.2), Color(0.48, 0.52, 0.53))
+			else:
+				# Metal orbital platforms, reactor pylons and dark void.
+				block(self, Vector3(6.0, 0.25, 5.0), Vector3(side * 10.5, 0.15, z), Color(0.19, 0.2, 0.3))
+				block(self, Vector3(1.0, 4.3, 1.0), Vector3(side * 11.3, 2.3, z), Color(0.2, 0.24, 0.33))
+				block(self, Vector3(1.2, 0.12, 1.2), Vector3(side * 11.3, 4.4, z), Color(0.31, 0.21, 0.48))
+
+func _build_base() -> void:
+	base_node = Node3D.new()
+	base_node.position = Vector3(0, 0, 6.5)
+	add_child(base_node)
+	var wall: Color = [Color(0.36, 0.41, 0.46), Color(0.43, 0.36, 0.29), Color(0.28, 0.41, 0.45), Color(0.36, 0.35, 0.5)][stage]
+	block(base_node, Vector3(4.0, 2.6, 3.4), Vector3(0, 1.3, 0), wall)
+	block(base_node, Vector3(4.7, 0.38, 4.1), Vector3(0, 2.78, 0), wall.darkened(0.25))
+	for side_value in [-1, 1]:
+		var side := float(side_value)
+		block(base_node, Vector3(0.85, 3.9, 0.85), Vector3(side * 2.1, 1.95, -1.7), wall.darkened(0.1))
+		block(base_node, Vector3(0.78, 0.16, 0.78), Vector3(side * 2.1, 3.95, -1.7), wall.lightened(0.12))
+		block(base_node, Vector3(0.54, 0.6, 0.08), Vector3(side * 1.28, 1.6, -1.76), Color(0.15, 0.2, 0.25))
+	block(base_node, Vector3(1.1, 1.55, 0.09), Vector3(0, 0.78, -1.76), Color(0.11, 0.14, 0.17))
+	block(base_node, Vector3(1.8, 0.12, 0.1), Vector3(0, 2.25, -1.76), Color(0.23, 0.45, 0.47))
+	block(base_node, Vector3(5.5, 0.13, 0.2), Vector3(0, 0.12, -3.0), Color(0.34, 0.4, 0.42))
 
 func _build_player() -> void:
 	player = Node3D.new()
@@ -157,6 +228,9 @@ func _build_player() -> void:
 		oval(player, Vector3(0.12, 0.13, 0.12), Vector3(side * 0.62, 1.04, -0.25), skin)
 	block(player, Vector3(0.23, 0.21, 0.67), Vector3(0.64, 1.1, -0.62), Color(0.14, 0.17, 0.2))
 	block(player, Vector3(0.22, 0.1, 0.12), Vector3(0.64, 1.1, -1.0), Color(0.37, 0.18, 0.23))
+	block(player, Vector3(0.56, 0.4, 0.11), Vector3(0, 1.4, -0.28), suit.lightened(0.22))
+	block(player, Vector3(0.45, 0.52, 0.18), Vector3(0, 1.35, 0.31), Color(0.13, 0.18, 0.21))
+	block(player, Vector3(0.42, 0.12, 0.38), Vector3(0, 0.83, 0), Color(0.14, 0.19, 0.24))
 
 func _spawn_core(pos: Vector3) -> void:
 	var root := Node3D.new()
@@ -168,16 +242,22 @@ func _spawn_core(pos: Vector3) -> void:
 
 func _spawn_enemy(boss: bool) -> void:
 	var root := Node3D.new()
-	root.position = Vector3(rng.randf_range(-5.0, 5.0), 0, rng.randf_range(-19.0, 19.0))
-	if root.position.distance_to(player.position) < 6.0:
-		root.position.z = -19.0 if player.position.z > 0 else 19.0
+	root.position = Vector3(rng.randf_range(-5.0, 5.0), 0, rng.randf_range(-19.0, -13.0))
 	add_child(root)
 	var scale_factor := 2.1 if boss else 1.0
 	root.scale = Vector3.ONE * scale_factor
 	var shell := Color(0.28, 0.15, 0.22) if boss else Color(0.16, 0.2, 0.25)
+	if stage == 1:
+		shell = Color(0.35, 0.24, 0.16)
+	elif stage == 2:
+		shell = Color(0.13, 0.28, 0.3)
+	elif stage == 3:
+		shell = Color(0.3, 0.22, 0.39)
 	var legs := Color(0.25, 0.15, 0.19) if boss else Color(0.13, 0.17, 0.21)
 	oval(root, Vector3(0.65, 0.37, 0.72), Vector3(0, 0.78, 0.42), shell)
 	oval(root, Vector3(0.42, 0.29, 0.43), Vector3(0, 0.76, -0.49), shell.lightened(0.15))
+	for stripe in range(3):
+		oval(root, Vector3(0.44 - stripe * 0.08, 0.04, 0.06), Vector3(0, 1.11 + stripe * 0.025, 0.05 + stripe * 0.27), shell.lightened(0.35))
 	for side_value in [-1, 1]:
 		var side := float(side_value)
 		for leg_index in range(4):
@@ -186,10 +266,12 @@ func _spawn_enemy(boss: bool) -> void:
 			var foot := Vector3(side * (1.35 + leg_index * 0.16), 0.1, z * 2.2)
 			limb(root, Vector3(side * 0.34, 0.78, z), knee, 0.09, legs)
 			limb(root, knee, foot, 0.065, legs)
+			oval(root, Vector3(0.1, 0.1, 0.1), knee, legs.lightened(0.13))
 	for side_value in [-1, 1]:
 		var side := float(side_value)
 		oval(root, Vector3(0.09, 0.09, 0.06), Vector3(side * 0.19, 0.87, -0.87), Color(0.85, 0.19, 0.2))
-	enemies.append({"node": root, "hp": 220.0 if boss else 65.0, "speed": 1.2 if boss else 2.2, "boss": boss})
+		limb(root, Vector3(side * 0.21, 0.69, -0.77), Vector3(side * 0.25, 0.39, -0.98), 0.055, legs)
+	enemies.append({"node": root, "hp": 220.0 + stage * 70.0 if boss else 65.0 + stage * 17.0, "speed": 1.2 + stage * 0.1 if boss else 2.2 + stage * 0.2, "boss": boss})
 
 func _process(delta: float) -> void:
 	if game_over:
@@ -205,19 +287,25 @@ func _process(delta: float) -> void:
 	if fire_held or Input.is_action_pressed("fire"):
 		_shoot()
 	spawn_timer -= delta
-	if spawn_timer <= 0.0 and enemies.size() < 6 and not boss_spawned:
+	if spawn_timer <= 0.0 and enemies.size() < 6 and not boss_spawned and kills < kill_goal:
 		_spawn_enemy(false)
-		spawn_timer = 2.8
+		spawn_timer = maxf(1.8, 2.8 - stage * 0.25)
 	for i in range(enemies.size() - 1, -1, -1):
 		var enemy: Dictionary = enemies[i]
 		var node: Node3D = enemy["node"]
-		var toward: Vector3 = player.position - node.position
+		var target_position: Vector3 = player.position if node.position.distance_to(player.position) < 3.5 else base_node.position
+		var toward: Vector3 = target_position - node.position
 		toward.y = 0
-		if toward.length() > 1.15:
+		if toward.length() > (2.6 if target_position == base_node.position else 1.15):
 			node.position += toward.normalized() * float(enemy["speed"]) * delta
-			node.look_at(player.position + Vector3(0, 1, 0), Vector3.UP)
+			node.look_at(target_position + Vector3(0, 1, 0), Vector3.UP)
+			node.position.y = sin(Time.get_ticks_msec() * 0.006 + float(i) * 1.4) * 0.045
 		else:
-			hp = maxf(0.0, hp - (22.0 if enemy["boss"] else 11.0) * delta)
+			var damage := (22.0 if enemy["boss"] else 11.0) * delta
+			if target_position == base_node.position:
+				base_hp = maxf(0.0, base_hp - damage)
+			else:
+				hp = maxf(0.0, hp - damage)
 	for i in range(cores.size() - 1, -1, -1):
 		var core := cores[i]
 		core.rotate_y(delta * 1.7)
@@ -236,10 +324,10 @@ func _process(delta: float) -> void:
 			var enemy: Dictionary = enemies[j]
 			var target: Node3D = enemy["node"]
 			if mesh.position.distance_to(target.position + Vector3(0, 1, 0)) < (1.5 if enemy["boss"] else 0.8):
-				enemy["hp"] = float(enemy["hp"]) - 25.0
+				enemy["hp"] = float(enemy["hp"]) - (25.0 + level * 2.0)
 				hit = true
 				if float(enemy["hp"]) <= 0.0:
-					credits += 15 if enemy["boss"] else 5
+					credits += 15 + stage * 5 if enemy["boss"] else 5 + stage * 2
 					kills += 1
 					var was_boss: bool = enemy["boss"]
 					target.queue_free()
@@ -250,10 +338,10 @@ func _process(delta: float) -> void:
 		if hit or float(bolt["life"]) <= 0.0:
 			mesh.queue_free()
 			bolts.remove_at(i)
-	if kills >= 8 and cores.is_empty() and not boss_spawned:
+	if kills >= kill_goal and cores.is_empty() and not boss_spawned:
 		boss_spawned = true
 		_spawn_enemy(true)
-	if hp <= 0:
+	if hp <= 0 or base_hp <= 0:
 		_end_game(false)
 	_refresh_ui()
 
@@ -280,27 +368,40 @@ func _shoot() -> void:
 	bolts.append({"node": bolt, "velocity": direction * 19.0, "life": 0.85})
 
 func _end_game(victory: bool) -> void:
+	if game_over:
+		return
 	game_over = true
-	var title := "BÖLGE TEMİZLENDİ" if victory else "OPERASYON BAŞARISIZ"
+	var finished_stage := stage
+	if victory:
+		level += 1
+		credits += 60 + stage * 25
+		unlocked = maxi(unlocked, mini(stage + 1, MAPS.size() - 1))
+	_save_progress()
+	var title := "ÜS KORUNDU!" if victory else "ÜS DÜŞTÜ!" if base_hp <= 0 else "OPERASYON BAŞARISIZ"
 	var panel := ColorRect.new()
 	panel.color = Color(0.015, 0.025, 0.065, 0.93)
 	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	overlay.add_child(panel)
 	var message := Label.new()
-	message.text = "%s\n\n%d düşman • %d kredi" % [title, kills, credits]
+	message.text = "%s\n%s • LV %d\n%d örümcek • %d kredi" % [title, MAPS[finished_stage], level, kills, credits]
 	message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	message.add_theme_font_size_override("font_size", 32)
 	message.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-	message.position = Vector2(-300, -110)
-	message.size = Vector2(600, 130)
+	message.position = Vector2(-330, -140)
+	message.size = Vector2(660, 190)
 	overlay.add_child(message)
 	var retry := Button.new()
-	retry.text = "YENİDEN OYNA"
+	retry.text = "SONRAKİ BÖLÜM" if victory and finished_stage < MAPS.size() - 1 else "YENİDEN OYNA"
 	retry.add_theme_font_size_override("font_size", 25)
 	retry.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
 	retry.position = Vector2(-130, 70)
 	retry.size = Vector2(260, 75)
-	retry.pressed.connect(func() -> void: get_tree().reload_current_scene())
+	retry.pressed.connect(func() -> void:
+		if victory and finished_stage < MAPS.size() - 1:
+			stage = finished_stage + 1
+			_save_progress()
+		get_tree().reload_current_scene()
+	)
 	overlay.add_child(retry)
 
 func _build_ui() -> void:
@@ -312,18 +413,25 @@ func _build_ui() -> void:
 	var top := ColorRect.new()
 	top.color = Color(0.02, 0.04, 0.1, 0.9)
 	top.anchor_right = 1
-	top.offset_bottom = 148
+	top.offset_bottom = 162
 	overlay.add_child(top)
 	hud = Label.new()
 	hud.position = Vector2(22, 16)
-	hud.add_theme_font_size_override("font_size", 24)
+	hud.add_theme_font_size_override("font_size", 22)
 	hud.add_theme_color_override("font_color", CYAN)
 	overlay.add_child(hud)
 	mission = Label.new()
-	mission.position = Vector2(22, 95)
+	mission.position = Vector2(22, 105)
 	mission.add_theme_font_size_override("font_size", 18)
 	mission.add_theme_color_override("font_color", Color.WHITE)
 	overlay.add_child(mission)
+	var maps_button := Button.new()
+	maps_button.text = "HARİTALAR"
+	maps_button.position = Vector2(551, 17)
+	maps_button.size = Vector2(150, 50)
+	maps_button.add_theme_font_size_override("font_size", 18)
+	maps_button.pressed.connect(_show_map_menu)
+	overlay.add_child(maps_button)
 	joy_base = _touch_circle("", Vector2(34, -206), Vector2(170, 170), false)
 	joy_base.anchor_top = 1
 	joy_base.anchor_bottom = 1
@@ -340,6 +448,48 @@ func _build_ui() -> void:
 	fire_button.anchor_top = 1
 	fire_button.anchor_bottom = 1
 	fire_button.gui_input.connect(_fire_input)
+
+func _show_map_menu() -> void:
+	if game_over:
+		return
+	game_over = true
+	var menu := Control.new()
+	menu.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.add_child(menu)
+	var shade := ColorRect.new()
+	shade.color = Color(0.015, 0.025, 0.06, 0.95)
+	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	menu.add_child(shade)
+	var title := Label.new()
+	title.text = "AÇILAN HARİTALAR • LV %d" % level
+	title.position = Vector2(55, 270)
+	title.size = Vector2(610, 70)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 27)
+	menu.add_child(title)
+	for i in range(MAPS.size()):
+		var map_index := i
+		var button := Button.new()
+		button.text = "%d. %s%s" % [i + 1, MAPS[i], " 🔒" if i > unlocked else ""]
+		button.disabled = i > unlocked
+		button.position = Vector2(75, 370 + i * 94)
+		button.size = Vector2(570, 76)
+		button.add_theme_font_size_override("font_size", 23)
+		button.pressed.connect(func() -> void:
+			stage = map_index
+			_save_progress()
+			get_tree().reload_current_scene()
+		)
+		menu.add_child(button)
+	var close := Button.new()
+	close.text = "OYUNA DÖN"
+	close.position = Vector2(220, 790)
+	close.size = Vector2(280, 75)
+	close.pressed.connect(func() -> void:
+		menu.queue_free()
+		game_over = false
+	)
+	menu.add_child(close)
 
 func _touch_circle(caption: String, pos: Vector2, dims: Vector2, pink: bool) -> Control:
 	var control := Panel.new()
@@ -400,5 +550,5 @@ func _fire_input(event: InputEvent) -> void:
 		fire_held = event.pressed
 
 func _refresh_ui() -> void:
-	hud.text = "NXP // NEON DISTRICT\nCAN %d / 100    •    KREDİ %d" % [ceili(hp), credits]
-	mission.text = "BOSS: ÖRÜMCEK KRALİÇE" if boss_spawned else "GÖREV: %d/8 düşman   •   %d/3 çekirdek" % [mini(kills, 8), 3 - cores.size()]
+	hud.text = "NXP // %s\nLV %d   CAN %d   ÜS %d/150   KREDİ %d" % [MAPS[stage], level, ceili(hp), ceili(base_hp), credits]
+	mission.text = "BOSS: ÖRÜMCEK KRALİÇE • ÜSSÜ KORU" if boss_spawned else "ÜSSÜ KORU • %d/%d örümcek • %d/3 çekirdek" % [mini(kills, kill_goal), kill_goal, 3 - cores.size()]
